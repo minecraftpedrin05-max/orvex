@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="color-scheme" content="light dark">
+<title>ORVEX</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- LOGIN -->
+  <section class="screen login on" id="s-login">
+    <div class="step on" id="st-home">
+      <img class="mark" alt="ORVEX" src="logo.png">
+      <div>
+        <h1 data-t="welcome"></h1>
+        <p class="sub" data-t="welcomeSub"></p>
+      </div>
+      <div class="stack">
+        <div class="gwrap"><button class="btn solid" id="b-google"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 12h8"/></svg><span data-t="google"></span></button><div class="gover" id="g-over"></div></div>
+        <div class="or"><span data-t="or"></span></div>
+        <button class="btn" id="b-email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span data-t="email"></span></button>
+      </div>
+      <p class="err" id="e-home" role="alert"></p>
+      <button class="back" id="b-server" hidden data-t="server"></button>
+    </div>
+
+    <div class="step" id="st-server">
+      <button class="back" id="sv-back" data-t="back"></button>
+      <div><h1 data-t="serverTitle"></h1><p class="sub" data-t="serverSub"></p></div>
+      <div class="field"><label for="sv-in" data-t="server"></label><input id="sv-in" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="http://localhost:3000"></div>
+      <p class="hint" id="sv-cur"></p>
+      <p class="err" id="sv-err" role="alert"></p>
+      <button class="btn solid" id="sv-save"><span data-t="serverSave"></span></button>
+    </div>
+
+
+    <div class="step" id="st-mail">
+      <button class="back" data-go="st-home" data-t="back"></button>
+      <div><h1 data-t="mTitle"></h1><p class="sub" data-t="mSub"></p></div>
+      <div class="field"><label for="m-mail" data-t="mLabel"></label><input id="m-mail" type="email" autocomplete="email" inputmode="email" placeholder="nome@email.com"></div>
+      <p class="err" id="e-mail" role="alert"></p>
+      <button class="btn solid" id="m-next" data-t="continue"></button>
+    </div>
+
+    <div class="step" id="st-code">
+      <button class="back" data-go="st-mail" data-t="back"></button>
+      <div><h1 data-t="cTitle"></h1><p class="sub"><span data-t="cSub"></span> <b id="c-to"></b></p></div>
+      <div class="code" id="codes" role="group" aria-label="Code"></div>
+      <p class="err" id="e-code" role="alert"></p>
+      <button class="btn solid" id="c-next" data-t="verify"></button>
+      <button class="linkbtn" id="c-resend" data-t="resend"></button>
+    </div>
+
+    <div class="step" id="st-profile">
+      <div><h1 data-t="pTitle"></h1><p class="sub" data-t="pSub"></p></div>
+      <div class="field"><label for="p-name" data-t="pName"></label><input id="p-name" type="text" autocomplete="name" maxlength="60"></div>
+      <div class="field"><label for="p-birth" data-t="pBirth"></label><input id="p-birth" type="date" autocomplete="bday"></div>
+      <p class="err" id="e-profile" role="alert"></p>
+      <button class="btn solid" id="p-next" data-t="start"></button>
+    </div>
+  </section>
+
+  <!-- CHAT -->
+  <section class="screen" id="s-chat">
+    <div class="top">
+      <button class="icon" id="b-menu" data-aria="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+      <span class="title" id="ctitle">ORVEX</span>
+      <span style="width:44px"></span>
+    </div>
+    <div class="banner" id="net"></div>
+    <div class="msgs" id="msgs" aria-live="polite">
+      <div class="empty" id="empty"><h1 id="hello"></h1><p data-t="ask"></p></div>
+    </div>
+    <div class="composer">
+      <div class="pop" id="pop-plus" role="menu">
+        <button data-pick="photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-5-5-8 8"/></svg><span data-t="photo"></span></button>
+        <button data-pick="video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3"/></svg><span data-t="video"></span></button>
+        <button data-pick="file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg><span data-t="file"></span></button>
+        <button data-pick="camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span data-t="camera"></span></button>
+      </div>
+      <div class="pop speed" id="pop-speed" role="radiogroup">
+        <button role="radio" data-speed="slow"><span data-t="slow"></span></button>
+        <button role="radio" data-speed="mid"><span data-t="mid"></span></button>
+        <button role="radio" data-speed="fast"><span data-t="fast"></span></button>
+      </div>
+      <div class="box">
+        <div id="attached" class="chips" hidden></div>
+        <textarea id="inp" rows="1" data-ph="placeholder"></textarea>
+        <div class="row">
+          <button class="round" id="b-plus" data-aria="attach"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="chip" id="b-speed"><span id="speed-lbl"></span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          <span class="sp"></span>
+          <button class="round" id="b-mic" data-aria="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button>
+          <button class="round send" id="b-send" disabled data-aria="send"><svg id="ic-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg><svg id="ic-stop" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+        </div>
+      </div>
+      <input type="file" id="f-photo" accept="image/*" multiple hidden>
+      <input type="file" id="f-video" accept="video/*" hidden>
+      <input type="file" id="f-file" hidden>
+      <input type="file" id="f-camera" accept="image/*" capture="environment" hidden>
+    </div>
+  </section>
+
+  <!-- PROJETOS -->
+  <section class="screen" id="s-projects">
+    <div class="top">
+      <button class="icon" data-back data-aria="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="title" data-t="projects"></span>
+      <button class="icon" id="pj-add" data-aria="newProject"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="body">
+      <div class="form" id="pj-form">
+        <div class="field"><label for="pj-name" data-t="projName"></label><input id="pj-name" type="text" maxlength="50"></div>
+        <div class="field"><label for="pj-type" data-t="projType"></label>
+          <select id="pj-type"><option value="site" data-t="tSite"></option><option value="app" data-t="tApp"></option><option value="game" data-t="tGame"></option><option value="bot" data-t="tBot"></option><option value="other" data-t="tOther"></option></select></div>
+        <p class="err" id="e-proj" role="alert"></p>
+        <button class="btn solid" id="pj-create" data-t="create"></button>
+      </div>
+      <div id="pj-list" class="body" style="padding:0;overflow:visible"></div>
+    </div>
+  </section>
+
+  <section class="screen" id="s-project">
+    <div class="top">
+      <button class="icon" data-back="s-projects" data-aria="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="title" id="pd-title"></span>
+      <button class="icon" id="pd-new" data-aria="newChat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="body" id="pd-list"></div>
+  </section>
+
+  <!-- CÓDIGOS -->
+  <section class="screen" id="s-codes">
+    <div class="top">
+      <button class="icon" data-back data-aria="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="title" data-t="codes"></span>
+      <span style="width:44px"></span>
+    </div>
+    <input class="search" id="cd-search" type="search" data-ph="searchCode">
+    <div class="body" id="cd-list" style="padding-top:10px"></div>
+  </section>
+
+  <!-- CONFIGURAÇÕES -->
+  <section class="screen" id="s-settings">
+    <div class="top">
+      <button class="icon" data-back data-aria="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="title" data-t="settings"></span>
+      <span style="width:44px"></span>
+    </div>
+    <div class="body">
+      <div class="kv"><span data-t="pName"></span><span id="st-name"></span></div>
+      <div class="kv"><span data-t="mLabel"></span><span id="st-mail2" style="overflow-wrap:anywhere;text-align:right"></span></div>
+      <div class="kv"><span data-t="language"></span><span id="st-lang"></span></div>
+      <div class="kv"><span data-t="theme"></span><span data-t="themeAuto"></span></div>
+      <button class="btn" id="st-ai" hidden style="margin-top:16px"><span data-t="aiSet"></span></button>
+      <button class="btn" id="st-server-btn" hidden style="margin-top:10px"><span data-t="server"></span></button>
+      <button class="btn" id="st-conn" style="margin-top:10px"><span data-t="connectors"></span></button>
+      <button class="btn" id="st-out" style="margin-top:10px"><span data-t="logout"></span></button>
+    </div>
+  </section>
+
+
+  <!-- CONFIGURAÇÕES DA IA -->
+  <section class="screen" id="s-ai">
+    <div class="top">
+      <button class="icon" data-back="s-settings" data-aria="back2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="title" data-t="aiSet"></span>
+      <span style="width:44px"></span>
+    </div>
+    <div class="body" id="ai-body"></div>
+  </section>
+
+  <!-- CONECTORES -->
+  <section class="screen" id="s-connectors">
+    <div class="top">
+      <button class="icon" data-back data-aria="back2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="title" data-t="connectors"></span>
+      <span style="width:44px"></span>
+    </div>
+    <div class="body" id="cn-list"></div>
+  </section>
+
+  <section class="screen" id="s-connector">
+    <div class="top">
+      <button class="icon" data-back="s-connectors" data-aria="back2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="title" id="cn-title"></span>
+      <span style="width:44px"></span>
+    </div>
+    <div class="body" id="cn-body"></div>
+  </section>
+
+  <div class="scrim" id="scrim"></div>
+  <nav class="drawer" id="drawer">
+    <button id="d-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-t="newChat"></span></button>
+    <button id="d-proj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg><span data-t="projects"></span></button>
+    <button id="d-code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg><span data-t="codes"></span></button>
+    <div class="lbl" data-t="chats"></div>
+    <div class="list" id="d-chats"></div>
+    <div class="line"></div>
+    <button id="d-set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span data-t="settings"></span></button>
+    <button id="d-conn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 01-12 0zM12 17v4"/></svg><span data-t="connectors"></span></button>
+    <button id="d-out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/></svg><span data-t="logout"></span></button>
+  </nav>
+</div>
+
+
+<div class="modal" id="viewer" role="dialog" aria-modal="true">
+  <div class="mtop">
+    <button class="icon" id="v-close" data-aria="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <b id="v-title"></b>
+    <button class="icon" id="v-copy" data-aria="copy"></button>
+  </div>
+  <div class="mbody" id="v-body"></div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

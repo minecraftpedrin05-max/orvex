@@ -1,0 +1,12 @@
+{
+  "name": "orvex",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ORVEX - IA com chat, terminal, pastas e projetos",
+  "main": "server/index.js",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "test": "node --disable-warning=ExperimentalWarning test/smoke.js"
+  }
+}

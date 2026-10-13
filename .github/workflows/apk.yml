@@ -1,0 +1,54 @@
+name: Gerar APK do ORVEX
+
+# Roda sozinho quando você manda o código para o GitHub, ou manualmente na aba Actions.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['public/**', 'android-app/**', '.github/workflows/apk.yml']
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Copiar o app web e apontar para o seu servidor
+        working-directory: android-app
+        env:
+          # Em Settings > Secrets and variables > Actions > Variables, crie ORVEX_SERVER_URL
+          # com o endereço do seu servidor (opcional), ex.: https://orvex.exemplo.com
+          SERVER_URL: ${{ vars.ORVEX_SERVER_URL }}
+        run: |
+          # ORVEX_SERVER_URL é opcional: sem ela, o app pede o endereço do servidor na primeira vez que abre.
+          rm -rf www && cp -r ../public www
+          printf 'window.ORVEX_API_BASE = %s;\n' "\"${SERVER_URL%/}\"" > www/config.js
+
+      - name: Instalar dependências
+        working-directory: android-app
+        run: npm install
+
+      - name: Criar o projeto Android
+        working-directory: android-app
+        run: |
+          npx cap add android
+          npx @capacitor/assets generate --android --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000'
+          npx cap sync android
+
+      - name: Compilar o APK
+        working-directory: android-app/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orvex-apk
+          path: android-app/android/app/build/outputs/apk/debug/app-debug.apk

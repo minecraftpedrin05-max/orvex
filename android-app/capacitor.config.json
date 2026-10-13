@@ -1,0 +1,13 @@
+{
+  "appId": "app.orvex.ia",
+  "appName": "ORVEX",
+  "webDir": "www",
+  "backgroundColor": "#000000",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

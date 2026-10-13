@@ -1,0 +1,12 @@
+# ORVEX + Ollama no mesmo contêiner (modelo rodando no próprio servidor, só processador).
+# Pensado para um Space do Hugging Face (tipo Docker, porta 7860). NÃO foi testado aqui.
+FROM node:22-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates zstd && rm -rf /var/lib/apt/lists/* \
+ && curl -fsSL https://ollama.com/install.sh | sh
+WORKDIR /app
+COPY . .
+RUN chmod +x deploy/start.sh && mkdir -p /data /models && chmod -R 777 /data /models /app
+ENV PORT=7860 HOST=0.0.0.0 DATA_DIR=/data OLLAMA_MODELS=/models OLLAMA_KEEP_ALIVE=1h OLLAMA_MAX_LOADED_MODELS=1 \
+    MODEL_BASE_URL=http://127.0.0.1:11434/v1 MODELS_TO_PULL="qwen2.5:3b qwen2.5-coder:3b"
+EXPOSE 7860
+CMD ["deploy/start.sh"]
