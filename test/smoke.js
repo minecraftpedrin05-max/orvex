@@ -162,6 +162,17 @@ const { server } = require('../server/index.js');
     globalThis.fetch = realFetch; cfgR.googleClientId = prevR;
   }
 
+  // anexos: link assinado para mostrar a foto; código solto vira pasta
+  {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    const up = await (await realFetch(base + '/api/upload', { method: 'PUT', headers: { 'Content-Type': 'image/png', 'X-File-Name': 'a.png', Authorization: 'Bearer ' + token }, body: png })).json();
+    const lk = await api('POST', '/api/upload/link', { id: up.id }); const img = await realFetch(base + lk.url);
+    assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/png'); assert.equal(Buffer.from(await img.arrayBuffer()).length, png.length); ok('foto anexada abre pelo link assinado (para mostrar no chat)');
+    assert.equal((await realFetch(base + '/dl/xxx.yyy')).status, 403); ok('link inválido é recusado');
+    const lf = require('../server/agent').looseFiles('Aqui:\n```html\n<!DOCTYPE html><html><body>oi mundo</body></html>\n```\n```css\nbody { color: red; margin: 0; }\n```');
+    assert.deepEqual(lf.map((f) => f.path), ['index.html', 'style.css']); ok('código solto ganha nome de arquivo (index.html, style.css)');
+  }
+
   // API personalizada e servidor MCP de verdade (sobem aqui mesmo)
   const http2 = require('http'); const hits = [];
   const fake = http2.createServer((rq, rs) => {

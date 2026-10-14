@@ -45,6 +45,18 @@ function extractFiles(text) {
   return out;
 }
 
+// Blocos de código sem nome de arquivo (```html, ```css...): ganham nomes padrão dentro de uma pasta.
+const LANG_FILE = { html: 'index.html', htm: 'index.html', css: 'style.css', js: 'script.js', javascript: 'script.js', py: 'main.py', python: 'main.py', json: 'data.json', ts: 'main.ts', typescript: 'main.ts', java: 'Main.java', c: 'main.c', cpp: 'main.cpp', php: 'index.php', lua: 'main.lua', sh: 'run.sh', bash: 'run.sh', md: 'README.md', go: 'main.go', rs: 'main.rs', kt: 'Main.kt' };
+function looseFiles(text) {
+  const out = []; const used = new Set(); const re = /```([A-Za-z0-9+#]*)[^\n]*\n([\s\S]*?)\n```/g; let m;
+  while ((m = re.exec(String(text || '')))) {
+    let n = LANG_FILE[m[1].toLowerCase()]; if (!n || m[2].trim().length < 20) continue;
+    if (used.has(n)) { const d = n.lastIndexOf('.'); n = n.slice(0, d) + (used.size + 1) + n.slice(d); }
+    used.add(n); out.push({ path: n, content: m[2] });
+  }
+  return out;
+}
+
 // Gírias e abreviações de internet: expandidas só para o modelo ver (o chat continua mostrando o que a pessoa escreveu).
 const SLANG = { vc: 'você', vcs: 'vocês', pq: 'porque', oq: 'o que', td: 'tudo', tds: 'todos', tbm: 'também', tb: 'também', msm: 'mesmo', mt: 'muito', mto: 'muito', cdg: 'código', cod: 'código', cll: 'celular', cel: 'celular', dnv: 'de novo', dps: 'depois', hj: 'hoje', agr: 'agora', ngc: 'negócio', hr: 'hora', rpd: 'rápido', dmr: 'demais', vms: 'vamos', n: 'não', nn: 'não', blz: 'beleza', obg: 'obrigado', vlw: 'valeu', pls: 'por favor', pfv: 'por favor', pf: 'por favor', aq: 'aqui', ent: 'então', qnd: 'quando', vdd: 'verdade', fzr: 'fazer', gnt: 'gente', ft: 'foto', msg: 'mensagem', tmj: 'estamos juntos', sdds: 'saudades', mds: 'meu Deus', cmg: 'comigo', ctg: 'contigo', ngm: 'ninguém', tlgd: 'tá ligado', q: 'que', pra: 'para', ta: 'está', tá: 'está' };
 function expandSlang(text) {
@@ -225,7 +237,11 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
 
   // Modo simples: o modelo escreveu os arquivos em blocos de texto em vez de chamar a ferramenta.
   if (!wrote && !signal.aborted) {
-    const files = extractFiles(full);
+    let files = extractFiles(full);
+    if (!files.length && (simple || wantsFiles(ex) || followUp)) { // o modelo mandou código solto: guarda numa pasta nova em vez de só mostrar o texto
+      const loose = looseFiles(full);
+      if (loose.length) { const dir = 'projeto-' + Date.now().toString(36).slice(-4); files = loose.map((f) => ({ path: dir + '/' + f.path, content: f.content })); }
+    }
     for (const f of files) { try { await tools.execTool('write_file', { path: f.path, content: f.content }, ctx); wrote = true; } catch (e) { emit({ type: 'error', message: e.message }); } }
   }
 
@@ -243,4 +259,4 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
   emit({ type: 'done' });
 }
 
-module.exports = { run, pickModel, extractFiles, wantsFiles, expandSlang };
+module.exports = { run, pickModel, looseFiles, extractFiles, wantsFiles, expandSlang };

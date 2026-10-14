@@ -87,8 +87,8 @@ function reset() {
 
 /** Dono do servidor: o primeiro a entrar, ou o e-mail em ADMIN_EMAIL. */
 function isAdmin(u) {
-  const a = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-  if (a) return u.email.toLowerCase() === a;
+  const a = (process.env.ADMIN_EMAIL || '').split(/[,;\s]+/).map((x) => x.trim().toLowerCase()).filter(Boolean); // pode ter vários, separados por vírgula
+  if (a.length) return a.includes(String(u.email).toLowerCase());
   const r = q.one('SELECT MIN(id) AS m FROM users'); return !!r && r.m === u.id;
 }
 

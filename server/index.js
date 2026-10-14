@@ -273,8 +273,21 @@ on('POST', '/api/files/link', async (ctx) => {
   H.json(ctx.res, 200, { url: '/dl/' + token });
 });
 
+on('POST', '/api/upload/link', async (ctx) => {
+  const b = await H.readJson(ctx.req); const up = q.one('SELECT id FROM uploads WHERE id=? AND user_id=?', String(b.id || ''), ctx.user.id);
+  if (!up) throw auth.fail(404, 'Anexo não encontrado');
+  H.json(ctx.res, 200, { url: '/dl/' + auth.signLink({ u: ctx.user.id, up: up.id }, 3600e3) });
+});
+
 function serveLink(ctx) {
   const p = auth.readLink(ctx.params.token); if (!p) throw auth.fail(403, 'Link expirado');
+  if (p.up) { // anexo enviado pelo usuário (foto, vídeo...) para mostrar no chat
+    const up = q.one('SELECT * FROM uploads WHERE id=? AND user_id=?', p.up, p.u); const f = up && path.join(cfg.dataDir, 'uploads', up.id);
+    if (!up || !fs.existsSync(f)) throw auth.fail(404, 'Não encontrado');
+    const okMime = /^(image\/(png|jpe?g|gif|webp|bmp|avif)|video\/(mp4|webm|quicktime|3gpp)|audio\/[\w.+-]+)$/i.test(up.mime);
+    ctx.res.writeHead(200, { 'Content-Type': okMime ? up.mime : 'application/octet-stream', 'Content-Length': fs.statSync(f).size, 'Content-Security-Policy': "sandbox; default-src 'none'", 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, max-age=600', 'Content-Disposition': (okMime ? 'inline' : 'attachment') + "; filename*=UTF-8''" + encodeURIComponent(up.name) });
+    return fs.createReadStream(f).pipe(ctx.res);
+  }
   const chat = q.one('SELECT * FROM chats WHERE id=? AND user_id=?', p.c, p.u); if (!chat) throw auth.fail(404, 'Não encontrado');
   const ws = tools.wsDir(p.u, chat); const full = tools.safePath(ws, p.p);
   if (!fs.existsSync(full)) throw auth.fail(404, 'Não encontrado');

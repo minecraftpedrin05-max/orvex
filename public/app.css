@@ -175,3 +175,6 @@ body{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
 @media (prefers-reduced-motion:reduce){.sw::after{transition:none}}
 .hint{color:var(--muted);font-size:13px;margin:2px 2px 0}
 .alink{color:var(--fg);text-decoration:underline;font-size:14px}
+
+.thumb{width:34px;height:34px;object-fit:cover;border-radius:7px;flex:none;background:var(--line)}
+.att .thumb{width:min(220px,60vw);height:auto;max-height:260px;border-radius:14px;border:1.5px solid var(--line)}

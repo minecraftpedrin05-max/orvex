@@ -201,6 +201,7 @@
   function loginButtons() {
     $('b-github').hidden = !srv.githubEnabled; $('gwrap').hidden = !srv.googleClientId;
     $('or-line').hidden = !srv.githubEnabled && !srv.googleClientId;
+    if (NATIVE) $('g-over').style.display = 'none'; // no app o botão invisível do Google não pode ficar por cima do nosso
   }
   $('b-github').onclick = function () {
     if (!NATIVE) { location.href = (API || '') + '/api/auth/github/start'; return; }
@@ -261,10 +262,19 @@
   document.querySelectorAll('[data-speed]').forEach(function (b) { b.onclick = function () { setSpeed(b.getAttribute('data-speed')); }; });
   document.querySelectorAll('[data-pick]').forEach(function (b) { b.onclick = function () { $('f-' + b.getAttribute('data-pick')).click(); }; });
 
+  // miniatura de foto/vídeo: pelo arquivo local (antes de enviar) ou por um link assinado do servidor (conversa antiga)
+  function thumb(x) {
+    var isImg = /^image\//.test(x.mime || ''), isVid = /^video\//.test(x.mime || ''); if (!isImg && !isVid) return null;
+    var m = el(isImg ? 'img' : 'video', 'thumb'); m.setAttribute('alt', x.name || '');
+    if (isVid) { m.muted = true; m.playsInline = true; m.preload = 'metadata'; if (!x.local) m.controls = true; }
+    if (x.local) m.src = x.local;
+    else api('POST', '/api/upload/link', { id: x.id }).then(function (r) { m.src = API + r.url; }).catch(function () { m.remove(); });
+    return m;
+  }
   function renderChips() {
     var a = $('attached'); a.innerHTML = ''; a.hidden = !pending.length;
     pending.forEach(function (p, i) {
-      var c = el('div', 'chip2'); c.appendChild(el('span', '', p.name));
+      var c = el('div', 'chip2'); var th = thumb(p); if (th) c.appendChild(th); c.appendChild(el('span', '', p.name));
       var x = el('button'); x.innerHTML = I.x; x.setAttribute('aria-label', t('remove')); x.onclick = function () { pending.splice(i, 1); renderChips(); upd(); }; c.appendChild(x); a.appendChild(c);
     });
   }
@@ -277,7 +287,7 @@
           var h = { 'Content-Type': f.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(f.name || 'arquivo'), Authorization: 'Bearer ' + token };
           var r = await fetch(API + '/api/upload', { method: 'PUT', headers: h, body: f }); var j = await r.json();
           if (!r.ok) throw new Error(j.error || '');
-          pending.push({ id: j.id, name: j.name });
+          pending.push({ id: j.id, name: j.name, mime: j.mime || f.type || '', local: /^(image|video)\//.test(f.type || '') ? URL.createObjectURL(f) : '' });
         } catch (e) { toast(t('attachFail') + (e.message ? ' ' + e.message : '')); }
       }
       renderChips(); upd();
@@ -365,7 +375,7 @@
   function addUser(text, atts) {
     $('empty').hidden = true;
     if (text) msgs.appendChild(el('div', 'bub me', text));
-    if (atts && atts.length) { var a = el('div', 'att'); atts.forEach(function (x) { a.appendChild(el('span', '', x.name)); }); msgs.appendChild(a); }
+    if (atts && atts.length) { var a = el('div', 'att'); atts.forEach(function (x) { var th = thumb(x); a.appendChild(th || el('span', '', x.name)); }); msgs.appendChild(a); }
     bottom();
   }
 
