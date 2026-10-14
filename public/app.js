@@ -274,7 +274,7 @@
   function renderChips() {
     var a = $('attached'); a.innerHTML = ''; a.hidden = !pending.length;
     pending.forEach(function (p, i) {
-      var c = el('div', 'chip2'); var th = thumb(p); if (th) c.appendChild(th); c.appendChild(el('span', '', p.name));
+      var c = el('div', 'chip2'); var th = thumb(p); if (th) { c.className = 'chip2 pic'; c.appendChild(th); } else c.appendChild(el('span', '', p.name));
       var x = el('button'); x.innerHTML = I.x; x.setAttribute('aria-label', t('remove')); x.onclick = function () { pending.splice(i, 1); renderChips(); upd(); }; c.appendChild(x); a.appendChild(c);
     });
   }

@@ -178,3 +178,8 @@ body{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
 
 .thumb{width:34px;height:34px;object-fit:cover;border-radius:7px;flex:none;background:var(--line)}
 .att .thumb{width:min(220px,60vw);height:auto;max-height:260px;border-radius:14px;border:1.5px solid var(--line)}
+
+.chip2.pic{position:relative;padding:0;border:0;background:none;width:84px;height:84px}
+.chip2.pic .thumb{width:84px;height:84px;border-radius:14px;border:1.5px solid var(--line)}
+.chip2.pic button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;background:var(--fg);color:var(--bg)}
+.chip2.pic button svg{stroke:var(--bg)}
