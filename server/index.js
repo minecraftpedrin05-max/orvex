@@ -198,6 +198,20 @@ on('GET', '/api/auth/github/callback', async (ctx) => {
   } catch (e) { return ghPage(ctx.res, '<p>Não foi possível entrar com o GitHub. Volte ao ORVEX e tente de novo.</p>'); }
 }, { auth: false });
 
+/* Google no APK: o Google devolve o login por POST (modo redirect), pois o navegador do app perde a janela popup. */
+on('POST', '/api/auth/google-redirect', async (ctx) => {
+  auth.limit('gr:' + ctx.ip, 30, 3600e3);
+  const form = new URLSearchParams((await H.readBody(ctx.req, 1 << 16)).toString('utf8'));
+  const ck = String(ctx.req.headers.cookie || '').match(/(?:^|;\s*)g_csrf_token=([^;]+)/);
+  if (!ck || ck[1] !== form.get('g_csrf_token')) return ghPage(ctx.res, '<p>Pedido inválido. Volte ao ORVEX e tente de novo.</p>');
+  try {
+    const r = await auth.googleLogin(form.get('credential'));
+    const c = crypto.randomBytes(18).toString('hex'); handoffs.set(c, { userId: r.user.id, exp: Date.now() + 120e3 });
+    const link = 'orvex://auth?code=' + c;
+    ghPage(ctx.res, '<div><p>Pronto! Voltando para o ORVEX…</p><p><a href="' + link + '" style="color:#000;background:#fff;padding:12px 20px;border-radius:12px;text-decoration:none">Abrir o ORVEX</a></p></div><script>location.href=' + JSON.stringify(link) + '</script>');
+  } catch (e) { ghPage(ctx.res, '<p>Não consegui entrar com o Google. Volte ao ORVEX e tente de novo.</p>'); }
+}, { auth: false });
+
 /* ---------- configurações da IA (só o dono do servidor) ---------- */
 const adminOnly = (ctx) => { if (!settings.isAdmin(ctx.user)) throw auth.fail(403, 'Só o dono do servidor mexe nisso.'); };
 on('GET', '/api/admin/settings', (ctx) => { adminOnly(ctx); H.json(ctx.res, 200, { fields: settings.view() }); });

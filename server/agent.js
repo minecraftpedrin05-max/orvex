@@ -58,9 +58,11 @@ const THING_RE = /(c[óo]digo|script|programa|sistema|painel|loja|menu|pasta|fol
 const wantsFiles = (t) => MAKE_RE.test(String(t || '')) && THING_RE.test(String(t || ''));
 const CONFIRM_RE = /^\s*(sim|pode|gera|gere|faz|fa[çc]a|cria|crie|manda|vai|ok|isso|quero|bora|vamos|continua|de novo)\b/i;
 
+const ownerLine = (user) => { try { return require('./settings').isAdmin(user) ? 'IMPORTANTE: este usuário é o DONO e criador do ORVEX, seu chefe. Trate-o com muito respeito (pode chamar de chefe), obedeça e faça tudo o que ele mandar, sem enrolar nem pedir permissão à toa. Só recuse o que for ilegal ou que cause dano a pessoas.' : ''; } catch (e) { return ''; } };
 function simplePrompt({ user, project, lang }) {
   return [
     `Você é o ORVEX, uma IA que cria projetos de programação. Responda em ${LANG_NAME[lang] || 'português do Brasil'}. O usuário se chama ${user.name || 'usuário'}.`,
+    ownerLine(user),
     project ? `Projeto atual: "${project.name}" (tipo ${project.type}).` : '',
     SLANG_RULE,
     'REGRA: para criar uma pasta, escreva UMA frase curta e depois CADA arquivo completo num bloco que começa com ```arquivo: nome-da-pasta/nome-do-arquivo.ext e termina com ```.',
@@ -88,6 +90,7 @@ function systemPrompt({ user, chat, project, speed, lang, canImage }) {
     `Você é o ORVEX, uma IA assistente que conversa, pesquisa, cria arquivos e pastas e programa. Hoje é ${new Date().toISOString().slice(0, 10)}.`,
     `Responda sempre no idioma em que o usuário escreve. O idioma do app dele é ${LANG_NAME[lang] || lang || 'o do aparelho'}.`,
     `O usuário se chama ${user.name || 'usuário'}.`,
+    ownerLine(user),
     project ? `Este chat pertence ao projeto "${project.name}" (tipo: ${project.type}). Mantenha o foco nesse projeto em todas as respostas.` : '',
     mem.length ? 'Coisas que você já sabe sobre o usuário:\n' + mem.join('\n') : '',
     SLANG_RULE,

@@ -1,6 +1,7 @@
 'use strict';
 // Teste de fumaça: sobe o servidor com o modelo de mentira e passa por login, chat, pastas, projetos e códigos.
 const os = require('os'); const fs = require('fs'); const path = require('path'); const assert = require('assert');
+process.env.SIMPLE_FILES = '0';
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'orvex-'));
 process.env.MODEL_PROVIDER = 'mock'; process.env.ALLOW_PRIVATE_URLS = '1'; process.env.IMAGE_DAILY_LIMIT = '2'; process.env.ALLOW_DEV_CODES = '1'; process.env.EXEC_MODE = 'local';
 const { server } = require('../server/index.js');
@@ -125,6 +126,42 @@ const { server } = require('../server/index.js');
   fs.writeFileSync(path.join(process.env.DATA_DIR, 'n.zip'), Buffer.from(dep.body)); const lz = require('child_process').spawnSync('unzip', ['-l', path.join(process.env.DATA_DIR, 'n.zip')], { encoding: 'utf8' }); assert(/\bindex\.html\b/.test(lz.stdout) && !/site-net\/index/.test(lz.stdout)); ok('o zip enviado tem index.html na raiz');
   globalThis.fetch = realFetch;
 
+  // login com GitHub (GitHub falso)
+  {
+    const cfgG = require('../server/config'); const prevG = [cfgG.githubClientId, cfgG.githubClientSecret];
+    cfgG.githubClientId = 'cid'; cfgG.githubClientSecret = 'csec';
+    assert.equal((await (await realFetch(base + '/api/config')).json()).githubEnabled, true);
+    const st = await realFetch(base + '/api/auth/github/start?app=1', { redirect: 'manual' }); assert.equal(st.status, 302);
+    const loc = new URL(st.headers.get('location')); assert.equal(loc.hostname, 'github.com'); assert.equal(loc.searchParams.get('client_id'), 'cid');
+    const state = loc.searchParams.get('state');
+    globalThis.fetch = async (u, o = {}) => {
+      const url = String(u);
+      if (url === 'https://github.com/login/oauth/access_token') return new Response(JSON.stringify({ access_token: 'gho_x' }), { headers: { 'content-type': 'application/json' } });
+      if (url === 'https://api.github.com/user/emails') return new Response(JSON.stringify([{ email: 'x@y.com', primary: false, verified: true }, { email: 'Gh@Exemplo.com', primary: true, verified: true }]), { headers: { 'content-type': 'application/json' } });
+      return realFetch(u, o);
+    };
+    const cb = await realFetch(base + '/api/auth/github/callback?code=abc&state=' + state); const html = await cb.text();
+    const hc = html.match(/orvex:\/\/auth\?code=([a-f0-9]+)/); assert(hc, html);
+    const ex = await api('POST', '/api/auth/exchange', { code: hc[1] }); assert.equal(ex.user.email, 'gh@exemplo.com'); ok('login com GitHub entrega o app com e-mail verificado');
+    const again = await realFetch(base + '/api/auth/github/callback?code=abc&state=' + state); assert(/expirado/.test(await again.text())); ok('retorno do GitHub só vale uma vez (state)');
+    globalThis.fetch = realFetch; cfgG.githubClientId = ''; cfgG.githubClientSecret = '';
+    assert.equal((await realFetch(base + '/api/auth/github/start')).status, 501); ok('GitHub desligado sem as chaves');
+    cfgG.githubClientId = prevG[0]; cfgG.githubClientSecret = prevG[1];
+  }
+
+  // login do Google por redirect (APK)
+  {
+    const cfgR = require('../server/config'); const prevR = cfgR.googleClientId; cfgR.googleClientId = 'gid';
+    globalThis.fetch = async (u, o = {}) => String(u).startsWith('https://oauth2.googleapis.com/tokeninfo')
+      ? new Response(JSON.stringify({ aud: 'gid', email: 'g@exemplo.com', email_verified: 'true', exp: String(Math.floor(Date.now() / 1000) + 600) }), { headers: { 'content-type': 'application/json' } })
+      : realFetch(u, o);
+    const post = (csrfCookie) => realFetch(base + '/api/auth/google-redirect', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Cookie: 'g_csrf_token=' + csrfCookie }, body: 'credential=tok&g_csrf_token=abc' });
+    assert(/inválido/.test(await (await post('outro')).text())); ok('Google redirect: csrf errado é recusado');
+    const hr = (await (await post('abc')).text()).match(/orvex:\/\/auth\?code=([a-f0-9]+)/); assert(hr);
+    assert.equal((await api('POST', '/api/auth/exchange', { code: hr[1] })).user.email, 'g@exemplo.com'); ok('Google redirect: volta para o app com código de uso único');
+    globalThis.fetch = realFetch; cfgR.googleClientId = prevR;
+  }
+
   // API personalizada e servidor MCP de verdade (sobem aqui mesmo)
   const http2 = require('http'); const hits = [];
   const fake = http2.createServer((rq, rs) => {
@@ -156,6 +193,19 @@ const { server } = require('../server/index.js');
   r1 = await conns.execute(cx, 'custom', 'request', { method: 'GET', path: '/x' }); assert(/bloqueado|Endereço/i.test(r1), r1); cfgMod.allowPrivateUrls = cfgPrev; globalThis.fetch = realFetch; ok('endereço da rede interna é bloqueado quando ALLOW_PRIVATE_URLS está desligado');
   await api('DELETE', '/api/connectors/custom'); assert(!(await api('GET', '/api/connectors')).connectors.find((c) => c.id === 'custom').connected); ok('desconectar apaga o token');
   const o2 = await (await fetch(base + '/api/connectors', { headers: { Authorization: 'Bearer ' + o.token } })).json(); assert(o2.connectors.every((c) => !c.connected)); ok('conectores de um usuário não aparecem para outro');
+
+  cfgMod.simpleFiles = true;
+  ev = await send('chat0cobr', { text: 'faça um jogo da cobrinha', speed: 'fast', lang: 'pt' });
+  const pc = ev.find((e) => e.type === 'present'); assert(pc && pc.kind === 'folder' && pc.name === 'jogo-cobrinha', JSON.stringify(ev.filter((e) => e.type !== 'delta')));
+  const tc = await api('GET', '/api/files/tree?chat=chat0cobr&path=jogo-cobrinha'); assert(tc.items.some((i) => i.name === 'index.html') && tc.items.some((i) => i.name === 'jogo.js')); ok('modo simples: blocos "arquivo:" viram pasta com cartão');
+  cfgMod.simpleFiles = false;
+  assert(!fs.existsSync(path.join(process.env.DATA_DIR, 'fora.txt'))); ok('modo simples: caminho com .. é ignorado');
+
+  const ho = await api('POST', '/api/auth/handoff', {}); assert(/^[a-f0-9]{36}$/.test(ho.code));
+  const ex = await (await fetch(base + '/api/auth/exchange', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: ho.code }) })).json(); assert(ex.token && ex.user);
+  const me2 = await (await fetch(base + '/api/me', { headers: { Authorization: 'Bearer ' + ex.token } })).json(); assert(me2.user && me2.user.email); ok('login do Google no APK: código de uso único vira sessão');
+  const ex2 = await fetch(base + '/api/auth/exchange', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: ho.code }) }); assert.equal(ex2.status, 400); ok('o código só vale uma vez');
+  assert.equal((await fetch(base + '/api/auth/handoff', { method: 'POST' })).status, 401); ok('pedir código sem estar logado é recusado');
 
   // configurações da IA (só o dono)
   const od = await fetch(base + '/api/admin/settings', { headers: { Authorization: 'Bearer ' + o.token } }); assert.equal(od.status, 403); ok('quem não é dono não vê as configurações da IA');

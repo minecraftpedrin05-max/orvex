@@ -9,7 +9,7 @@
       p_read: 'Ver e ler', p_write: 'Criar e alterar', p_deploy: 'Hospedar (publicar sites e apps)', p_delete: 'Apagar', p_send: 'Enviar mensagens',
       f_token: 'Token de acesso', f_token_opt: 'Token de acesso (se precisar)', f_url: 'Endereço (começa com https://)', f_header: 'Nome do cabeçalho do token (padrão: Authorization)', howToken: 'Onde pego o token?', connectedAs: 'Conectado como {n}', noActions: 'Nenhuma ação',
       host: 'Hospedando {f}', image: 'Gerando imagem', vision: 'Olhando a imagem',
-      welcome: 'Entre no ORVEX', welcomeSub: 'Escolha como quer entrar.', google: 'Continuar com Google', or: 'ou', email: 'Continuar com e-mail', back: 'Voltar', continue: 'Continuar',
+      welcome: 'Entre no ORVEX', welcomeSub: 'Escolha como quer entrar.', google: 'Continuar com Google', github: 'Entrar com o GitHub', or: 'ou', email: 'Continuar com e-mail', back: 'Voltar', continue: 'Continuar',
       mTitle: 'Seu e-mail', mSub: 'Vamos enviar um código para confirmar.', mLabel: 'E-mail', cTitle: 'Digite o código', cSub: 'Enviamos um código de 6 dígitos para', verify: 'Confirmar', resend: 'Enviar outro código', sent: 'Código enviado.',
       pTitle: 'Quase lá', pSub: 'Conte um pouco sobre você.', pName: 'Nome', pBirth: 'Data de nascimento', start: 'Começar',
       eMail: 'Digite um e-mail válido.', eCode: 'Digite os 6 dígitos.', eName: 'Digite seu nome.', eBirth: 'Digite uma data de nascimento válida.',
@@ -34,7 +34,7 @@
       p_read: 'View and read', p_write: 'Create and change', p_deploy: 'Host (publish sites and apps)', p_delete: 'Delete', p_send: 'Send messages',
       f_token: 'Access token', f_token_opt: 'Access token (if needed)', f_url: 'Address (starts with https://)', f_header: 'Token header name (default: Authorization)', howToken: 'Where do I get the token?', connectedAs: 'Connected as {n}', noActions: 'No actions',
       host: 'Hosting {f}', image: 'Generating image', vision: 'Looking at the image',
-      welcome: 'Sign in to ORVEX', welcomeSub: 'Choose how you want to sign in.', google: 'Continue with Google', or: 'or', email: 'Continue with email', back: 'Back', continue: 'Continue',
+      welcome: 'Sign in to ORVEX', welcomeSub: 'Choose how you want to sign in.', google: 'Continue with Google', github: 'Sign in with GitHub', or: 'or', email: 'Continue with email', back: 'Back', continue: 'Continue',
       mTitle: 'Your email', mSub: 'We will send a code to confirm it.', mLabel: 'Email', cTitle: 'Enter the code', cSub: 'We sent a 6-digit code to', verify: 'Confirm', resend: 'Send another code', sent: 'Code sent.',
       pTitle: 'Almost there', pSub: 'Tell us a little about you.', pName: 'Name', pBirth: 'Date of birth', start: 'Get started',
       eMail: 'Enter a valid email.', eCode: 'Enter all 6 digits.', eName: 'Enter your name.', eBirth: 'Enter a valid date of birth.',
@@ -59,7 +59,7 @@
       p_read: 'Ver y leer', p_write: 'Crear y cambiar', p_deploy: 'Alojar (publicar sitios y apps)', p_delete: 'Borrar', p_send: 'Enviar mensajes',
       f_token: 'Token de acceso', f_token_opt: 'Token de acceso (si hace falta)', f_url: 'Dirección (empieza con https://)', f_header: 'Nombre del encabezado del token (por defecto: Authorization)', howToken: '¿Dónde consigo el token?', connectedAs: 'Conectado como {n}', noActions: 'Sin acciones',
       host: 'Alojando {f}', image: 'Generando imagen', vision: 'Mirando la imagen',
-      welcome: 'Entra a ORVEX', welcomeSub: 'Elige cómo quieres entrar.', google: 'Continuar con Google', or: 'o', email: 'Continuar con correo', back: 'Atrás', continue: 'Continuar',
+      welcome: 'Entra a ORVEX', welcomeSub: 'Elige cómo quieres entrar.', google: 'Continuar con Google', github: 'Entrar con GitHub', or: 'o', email: 'Continuar con correo', back: 'Atrás', continue: 'Continuar',
       mTitle: 'Tu correo', mSub: 'Te enviaremos un código para confirmarlo.', mLabel: 'Correo', cTitle: 'Escribe el código', cSub: 'Enviamos un código de 6 dígitos a', verify: 'Confirmar', resend: 'Enviar otro código', sent: 'Código enviado.',
       pTitle: 'Casi listo', pSub: 'Cuéntanos un poco sobre ti.', pName: 'Nombre', pBirth: 'Fecha de nacimiento', start: 'Empezar',
       eMail: 'Escribe un correo válido.', eCode: 'Escribe los 6 dígitos.', eName: 'Escribe tu nombre.', eBirth: 'Escribe una fecha de nacimiento válida.',
@@ -117,7 +117,7 @@
   var ERR = { wrong: 'eWrong', expired: 'eExpired', rate: 'eRate', limit: 'eLimit', age: 'eAge', google_off: 'googleOff', email: 'eMail', name: 'eName', birth: 'eBirth' };
   function errText(e) { if (e && e.code && ERR[e.code]) return t(ERR[e.code]); if (e && e.net) return t('netErr'); return (e && e.message) || t('netErr'); }
 
-  var token = lsGet('orvex:token'); var user = null; var srv = { googleClientId: null };
+  var token = lsGet('orvex:token'); var user = null; var srv = { googleClientId: null, githubEnabled: false };
   async function api(method, path, body) {
     var h = { 'Content-Type': 'application/json' }; if (token) h.Authorization = 'Bearer ' + token;
     var r;
@@ -183,7 +183,7 @@
 
   /* Google: o botão do Google fica invisível por cima do nosso botão preto. */
   function initGoogle() {
-    if (!srv.googleClientId) return;
+    if (!srv.googleClientId || NATIVE) return; // no APK o login do Google abre no Chrome (veja b-google)
     var s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
     s.onload = function () {
       try {
@@ -198,7 +198,35 @@
     };
     document.head.appendChild(s);
   }
-  $('b-google').onclick = function () { if (!srv.googleClientId) $('e-home').textContent = t('googleOff'); };
+  function loginButtons() {
+    $('b-github').hidden = !srv.githubEnabled; $('gwrap').hidden = !srv.googleClientId;
+    $('or-line').hidden = !srv.githubEnabled && !srv.googleClientId;
+  }
+  $('b-github').onclick = function () {
+    if (!NATIVE) { location.href = (API || '') + '/api/auth/github/start'; return; }
+    var u = new URL(API || location.origin); if (u.hostname === '127.0.0.1') u.hostname = 'localhost';
+    var br = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+    var link = u.origin + '/api/auth/github/start?app=1';
+    if (br) br.open({ url: link }); else window.open(link, '_blank');
+  };
+  $('b-google').onclick = function () {
+    if (!srv.googleClientId) { $('e-home').textContent = t('googleOff'); return; }
+    if (!NATIVE) return;
+    // O Google não deixa entrar de dentro de um app: abre no navegador e volta pelo link orvex://auth?code=...
+    var u = new URL(API || location.origin); if (u.hostname === '127.0.0.1') u.hostname = 'localhost';
+    var br = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+    var link = u.origin + '/google-login.html';
+    if (br) br.open({ url: link }); else window.open(link, '_blank');
+  };
+  (function () {
+    var ap = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (!NATIVE || !ap || !ap.addListener) return;
+    ap.addListener('appUrlOpen', async function (ev) {
+      var m = String((ev && ev.url) || '').match(/^orvex:\/\/auth\?code=([a-f0-9]+)/); if (!m) return;
+      try { var br = window.Capacitor.Plugins.Browser; if (br && br.close) br.close(); } catch (e) {}
+      try { afterLogin(await api('POST', '/api/auth/exchange', { code: m[1] })); } catch (e) { toast(errText(e)); }
+    });
+  })();
 
   /* ================= estado do chat ================= */
   var data = { chats: [], projects: [], codes: [] };
@@ -713,7 +741,7 @@
   (async function boot() {
     if (NATIVE && !API) { openServer('home'); return; }
     try { srv = await api('GET', '/api/config'); } catch (e) {}
-    initGoogle();
+    initGoogle(); loginButtons();
     if (token) {
       try { var r = await api('GET', '/api/me'); user = r.user; lsSet('orvex:user', JSON.stringify(user)); if (user.complete) { enter(); var rid0 = lsGet('orvex:run'); if (rid0) openChat(rid0); } else { show('s-login'); step('st-profile'); } return; }
       catch (e) { if (e.net) { try { user = JSON.parse(lsGet('orvex:user') || 'null'); } catch (x) {} if (user && user.complete) { enter(); return; } } }

@@ -107,6 +107,10 @@ async function mockChat({ speed, model, messages, tools, onDelta }) {
     if (after.length === 1) return { text: '', toolCalls: [call('connector', { connector: 'netlify', action: 'deploy_folder', params: { folder: 'site-net', name: 'meu-site' } })] };
     const r = 'Conector: ' + after[1].content.slice(0, 300); await say(r); return { text: r, toolCalls: [] };
   }
+  if (/\bcobrinha\b/i.test(ut)) {
+    const t = 'Aqui está o jogo:\n\n```arquivo: jogo-cobrinha/index.html\n<!doctype html><title>Cobrinha</title><canvas id="c"></canvas><script src="jogo.js"></script>\n```\n\n**jogo-cobrinha/jogo.js**\n```javascript\nconsole.log("cobrinha");\n```\n\n```arquivo: ../fora.txt\nnao\n```';
+    await say(t); return { text: t, toolCalls: [] };
+  }
   if (/\b(pasta|folder|site)\b/i.test(ut)) {
     if (after.length === 0) {
       await say('Vou criar a pasta do site. ');

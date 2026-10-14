@@ -42,6 +42,7 @@ jobs:
         run: |
           npx cap add android
           npx @capacitor/assets generate --android --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000'
+          python3 patch_manifest.py
           npx cap sync android
 
       - name: Compilar o APK
