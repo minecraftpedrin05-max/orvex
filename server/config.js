@@ -37,7 +37,15 @@ module.exports = {
 
   // Login
   googleClientId: env('GOOGLE_CLIENT_ID', ''),
+  githubClientId: env('GITHUB_CLIENT_ID', ''),
+  githubClientSecret: env('GITHUB_CLIENT_SECRET', ''),
+  publicUrl: env('PUBLIC_URL', '').replace(/\/+$/, ''), // opcional: endereço do servidor para o retorno do GitHub
   resendApiKey: env('RESEND_API_KEY', ''),
+  smtpUser: env('SMTP_USER', ''), // e-mail do Gmail que envia os códigos
+  smtpPass: env('SMTP_PASS', '').replace(/\s+/g, ''), // senha de app do Gmail (16 letras)
+  smtpHost: env('SMTP_HOST', 'smtp.gmail.com'),
+  smtpPort: num('SMTP_PORT', 465),
+  smtpSecure: env('SMTP_SECURE', '1') !== '0',
   mailFrom: env('MAIL_FROM', 'ORVEX <onboarding@resend.dev>'),
   devCodes: env('ALLOW_DEV_CODES', '0') === '1', // devolve o código na resposta (só para testes locais)
   minAge: num('MIN_AGE', 13),

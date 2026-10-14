@@ -20,6 +20,14 @@ function limit(key, max, windowMs) {
 setInterval(() => { const t = now(); for (const [k, v] of buckets) if (!v.some((x) => t - x < 3600e3)) buckets.delete(k); }, 600e3).unref();
 
 async function sendMail(to, code) {
+  if (cfg.smtpUser && cfg.smtpPass) {
+    try {
+      await require('./smtp').send({ host: cfg.smtpHost, port: cfg.smtpPort, secure: cfg.smtpSecure, user: cfg.smtpUser, pass: cfg.smtpPass,
+        from: 'ORVEX <' + cfg.smtpUser + '>', to, subject: `ORVEX: seu código é ${code}`,
+        text: `Seu código do ORVEX é ${code}.\nEle vale por 10 minutos. Se não foi você, ignore este e-mail.` });
+    } catch (e) { console.error('[login] falha ao enviar e-mail (SMTP):', e.message); throw fail(502, 'Não consegui enviar o e-mail agora.', 'mail'); }
+    return;
+  }
   if (!cfg.resendApiKey) { console.log(`[login] código para ${to}: ${code}  (configure RESEND_API_KEY para enviar por e-mail)`); return; }
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -123,4 +131,4 @@ function readLink(token) {
   try { const p = JSON.parse(Buffer.from(body, 'base64url').toString()); return p.exp > now() ? p : null; } catch { return null; }
 }
 
-module.exports = { requestCode, verifyCode, googleLogin, setProfile, authenticate, logout, signLink, readLink, userView, fail, limit };
+module.exports = { finishLogin, normMail, newSession, requestCode, verifyCode, googleLogin, setProfile, authenticate, logout, signLink, readLink, userView, fail, limit };

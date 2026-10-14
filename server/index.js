@@ -29,7 +29,7 @@ function ownChat(user, id) {
 }
 
 /* ---------- config e login ---------- */
-on('GET', '/api/config', (ctx) => H.json(ctx.res, 200, { googleClientId: cfg.googleClientId || null, minAge: cfg.minAge }), { auth: false });
+on('GET', '/api/config', (ctx) => H.json(ctx.res, 200, { googleClientId: cfg.googleClientId || null, githubEnabled: !!(cfg.githubClientId && cfg.githubClientSecret), minAge: cfg.minAge }), { auth: false });
 
 on('POST', '/api/auth/request', async (ctx) => {
   const b = await H.readJson(ctx.req); const r = await auth.requestCode(b.email, ctx.ip);
@@ -59,6 +59,10 @@ on('GET', '/api/chats/:id', (ctx) => {
   const messages = q.all('SELECT id,role,text,parts,ts FROM messages WHERE chat_id=? ORDER BY id', chat.id)
     .map((m) => ({ ...m, parts: m.parts ? JSON.parse(m.parts) : [] }));
   H.json(ctx.res, 200, { chat, messages, running: active.has(chat.id) });
+});
+
+on('POST', '/api/chats/:id/stop', (ctx) => {
+  const chat = ownChat(ctx.user, ctx.params.id); const ac = active.get(chat.id); if (ac) ac.abort(); H.json(ctx.res, 200, { ok: true, was: !!ac });
 });
 
 on('DELETE', '/api/chats/:id', (ctx) => {
@@ -96,13 +100,14 @@ on('POST', '/api/chats/:id/send', async (ctx) => {
 
   const emit = H.sse(res);
   const ac = new AbortController(); active.set(chat.id, ac);
-  res.on('close', () => { if (!res.writableFinished) ac.abort(); });
+  // A resposta continua mesmo se a pessoa sair do app (a tela volta e busca o resultado). Só o botão parar ou o limite de tempo cancelam.
+  const maxTimer = setTimeout(() => ac.abort(), 15 * 60e3);
   try {
     await agent.run({ user, chat, project, text, attachments, speed: b.speed, lang: String(b.lang || user.lang || '').slice(0, 5), emit, signal: ac.signal });
   } catch (e) {
     console.error('[chat]', e); emit({ type: 'error', message: e.message || 'erro' });
   } finally {
-    active.delete(chat.id); res.end();
+    clearTimeout(maxTimer); active.delete(chat.id); try { res.end(); } catch {}
   }
 });
 
@@ -138,6 +143,61 @@ on('POST', '/api/connectors/:kind/connect', async (ctx) => {
 on('POST', '/api/connectors/:kind/perms', async (ctx) => {
   const b = await H.readJson(ctx.req); H.json(ctx.res, 200, { connector: connectors.setPerms(ctx.user.id, ctx.params.kind, b.perms) });
 });
+/* ---------- login do Google no APK: o navegador entrega um código de uso único para o app ---------- */
+const handoffs = new Map(); // codigo -> { userId, exp }
+on('POST', '/api/auth/handoff', (ctx) => {
+  for (const [k, v] of handoffs) if (v.exp < Date.now()) handoffs.delete(k);
+  if (handoffs.size > 500) throw auth.fail(429, 'Muitos pedidos. Tente de novo em instantes.');
+  const code = crypto.randomBytes(18).toString('hex'); handoffs.set(code, { userId: ctx.user.id, exp: Date.now() + 120e3 });
+  H.json(ctx.res, 200, { code });
+});
+on('POST', '/api/auth/exchange', async (ctx) => {
+  auth.limit('ex:' + ctx.ip, 30, 3600e3);
+  const b = await H.readJson(ctx.req); const code = String(b.code || ''); const h = handoffs.get(code); handoffs.delete(code);
+  if (!h || h.exp < Date.now()) throw auth.fail(400, 'Código expirado. Entre de novo.', 'expired');
+  const user = q.one('SELECT * FROM users WHERE id=?', h.userId); if (!user) throw auth.fail(400, 'Conta não encontrada.');
+  H.json(ctx.res, 200, { token: auth.newSession(user.id), user: auth.userView(user), isNew: !(user.name && user.birth) });
+}, { auth: false });
+
+/* ---------- login com GitHub ---------- */
+const ghStates = new Map(); // state -> { app, base, exp }
+const ghBase = (req) => cfg.publicUrl || ('http://' + String(req.headers.host || 'localhost:' + cfg.port).replace(/^127\.0\.0\.1/, 'localhost'));
+const ghPage = (res, body) => { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ORVEX</title><body style="background:#000;color:#fff;font:16px system-ui;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center;padding:24px">' + body); };
+on('GET', '/api/auth/github/start', (ctx) => {
+  if (!(cfg.githubClientId && cfg.githubClientSecret)) throw auth.fail(501, 'Login com GitHub ainda não está configurado neste servidor.', 'github_off');
+  auth.limit('gh:' + ctx.ip, 60, 3600e3);
+  for (const [k, v] of ghStates) if (v.exp < Date.now()) ghStates.delete(k);
+  if (ghStates.size > 500) throw auth.fail(429, 'Muitos pedidos. Tente de novo em instantes.');
+  const state = crypto.randomBytes(18).toString('hex'); const base = ghBase(ctx.req);
+  ghStates.set(state, { app: ctx.query.get('app') === '1', base, exp: Date.now() + 600e3 });
+  const u = new URL('https://github.com/login/oauth/authorize');
+  u.searchParams.set('client_id', cfg.githubClientId); u.searchParams.set('scope', 'user:email'); u.searchParams.set('state', state);
+  u.searchParams.set('redirect_uri', base + '/api/auth/github/callback');
+  ctx.res.writeHead(302, { Location: u.toString(), 'Cache-Control': 'no-store' }); ctx.res.end();
+}, { auth: false });
+on('GET', '/api/auth/github/callback', async (ctx) => {
+  const st = ghStates.get(String(ctx.query.get('state') || '')); ghStates.delete(String(ctx.query.get('state') || ''));
+  const code = String(ctx.query.get('code') || '');
+  if (!st || st.exp < Date.now() || !code) return ghPage(ctx.res, '<p>Login expirado ou cancelado. Volte ao ORVEX e tente de novo.</p>');
+  try {
+    const tr = await fetch('https://github.com/login/oauth/access_token', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: cfg.githubClientId, client_secret: cfg.githubClientSecret, code, redirect_uri: st.base + '/api/auth/github/callback' }) });
+    const tj = await tr.json(); if (!tj.access_token) throw new Error('token');
+    const er = await fetch('https://api.github.com/user/emails', { headers: { Authorization: 'Bearer ' + tj.access_token, Accept: 'application/vnd.github+json', 'User-Agent': 'orvex' } });
+    if (!er.ok) throw new Error('emails'); const list = await er.json();
+    const pick = (Array.isArray(list) ? list : []).find((e) => e.primary && e.verified) || (Array.isArray(list) ? list : []).find((e) => e.verified);
+    if (!pick) return ghPage(ctx.res, '<p>Sua conta do GitHub não tem e-mail verificado.</p>');
+    const r = auth.finishLogin(auth.normMail(pick.email));
+    if (st.app) {
+      const c = crypto.randomBytes(18).toString('hex'); handoffs.set(c, { userId: r.user.id, exp: Date.now() + 120e3 });
+      const link = 'orvex://auth?code=' + c;
+      return ghPage(ctx.res, '<div><p>Pronto! Voltando para o ORVEX…</p><p><a href="' + link + '" style="color:#000;background:#fff;padding:12px 20px;border-radius:12px;text-decoration:none">Abrir o ORVEX</a></p></div><script>location.href=' + JSON.stringify(link) + '</script>');
+    }
+    const j = (x) => JSON.stringify(x).replace(/</g, '\\u003c');
+    return ghPage(ctx.res, '<p>Entrando…</p><script>try{localStorage.setItem("orvex:token",' + j(r.token) + ');localStorage.setItem("orvex:user",' + j(JSON.stringify(r.user)) + ')}catch(e){}location.replace("/")</script>');
+  } catch (e) { return ghPage(ctx.res, '<p>Não foi possível entrar com o GitHub. Volte ao ORVEX e tente de novo.</p>'); }
+}, { auth: false });
+
 /* ---------- configurações da IA (só o dono do servidor) ---------- */
 const adminOnly = (ctx) => { if (!settings.isAdmin(ctx.user)) throw auth.fail(403, 'Só o dono do servidor mexe nisso.'); };
 on('GET', '/api/admin/settings', (ctx) => { adminOnly(ctx); H.json(ctx.res, 200, { fields: settings.view() }); });
@@ -251,7 +311,7 @@ server.requestTimeout = 0; server.headersTimeout = 30000;
 if (require.main === module) {
   server.listen(cfg.port, cfg.host, () => {
     console.log(`ORVEX no ar em http://localhost:${cfg.port}`);
-    console.log(`  modelo: ${cfg.provider === 'mock' ? 'TESTE (mock)' : cfg.modelBase + ' (' + cfg.models.mid + ')'} · terminal: ${cfg.exec} · google: ${cfg.googleClientId ? 'ligado' : 'desligado'} · e-mail: ${cfg.resendApiKey ? 'resend' : 'console'}`);
+    console.log(`  modelo: ${cfg.provider === 'mock' ? 'TESTE (mock)' : cfg.modelBase + ' (' + cfg.models.mid + ')'} · terminal: ${cfg.exec} · google: ${cfg.googleClientId ? 'ligado' : 'desligado'} · github: ${cfg.githubClientId ? 'ligado' : 'desligado'} · e-mail: ${cfg.smtpUser ? 'gmail' : cfg.resendApiKey ? 'resend' : 'console'}`);
   });
 }
 module.exports = { server };
