@@ -180,7 +180,8 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
   const before = topEntries(ws);
   const presented = []; const presentedSet = new Set();
   const ctx = {
-    user, ws, signal, speed, emit,
+    user, ws, signal, speed, emit, chat,
+    ask: (info) => require('./approvals').ask(chat.id, info, emit, signal),
     present(rel, extra) {
       if (presentedSet.has(rel)) return; presentedSet.add(rel);
       const full = path.join(ws, rel); let isDir = false; try { isDir = fs.statSync(full).isDirectory(); } catch { return; }

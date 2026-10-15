@@ -12,6 +12,8 @@ const agent = require('./agent');
 const { zipFolder } = require('./zip');
 const connectors = require('./connectors');
 const settings = require('./settings');
+const images = require('./images');
+const approvals = require('./approvals');
 
 const uid = () => crypto.randomBytes(6).toString('hex');
 const ID_RE = /^[a-z0-9]{6,32}$/;
@@ -29,7 +31,7 @@ function ownChat(user, id) {
 }
 
 /* ---------- config e login ---------- */
-on('GET', '/api/config', (ctx) => H.json(ctx.res, 200, { googleClientId: cfg.googleClientId || null, githubEnabled: !!(cfg.githubClientId && cfg.githubClientSecret), minAge: cfg.minAge }), { auth: false });
+on('GET', '/api/config', (ctx) => H.json(ctx.res, 200, { googleClientId: cfg.googleClientId || null, githubEnabled: !!(cfg.githubClientId && cfg.githubClientSecret), imageEdit: !!(cfg.image.baseUrl && cfg.image.api !== 'openai'), minAge: cfg.minAge }), { auth: false });
 
 on('POST', '/api/auth/request', async (ctx) => {
   const b = await H.readJson(ctx.req); const r = await auth.requestCode(b.email, ctx.ip);
@@ -58,7 +60,7 @@ on('GET', '/api/chats/:id', (ctx) => {
   const chat = ownChat(ctx.user, ctx.params.id);
   const messages = q.all('SELECT id,role,text,parts,ts FROM messages WHERE chat_id=? ORDER BY id', chat.id)
     .map((m) => ({ ...m, parts: m.parts ? JSON.parse(m.parts) : [] }));
-  H.json(ctx.res, 200, { chat, messages, running: active.has(chat.id) });
+  H.json(ctx.res, 200, { chat, messages, running: active.has(chat.id), asks: approvals.pendingFor(chat.id) });
 });
 
 on('POST', '/api/chats/:id/stop', (ctx) => {
@@ -109,6 +111,57 @@ on('POST', '/api/chats/:id/send', async (ctx) => {
   } finally {
     clearTimeout(maxTimer); active.delete(chat.id); try { res.end(); } catch {}
   }
+});
+
+on('POST', '/api/chats/:id/approve', async (ctx) => {
+  const chat = ownChat(ctx.user, ctx.params.id); const b = await H.readJson(ctx.req);
+  H.json(ctx.res, 200, { ok: approvals.answer(chat.id, b.id, b.answer) });
+});
+
+/* ---------- editar foto (o lápis do visualizador) ---------- */
+on('POST', '/api/images/edit', async (ctx) => {
+  auth.limit('ie:' + ctx.user.id, 20, 3600e3);
+  const b = await H.readJson(ctx.req); const prompt = String(b.prompt || '').trim().slice(0, 600);
+  if (!prompt) throw auth.fail(400, 'Diga o que mudar na foto.');
+  if (!(cfg.image.baseUrl || cfg.provider === 'mock')) throw auth.fail(501, 'Editar foto precisa de um servidor de imagens. O dono liga em Configurações da IA.', 'image_off');
+  const chat = ownChat(ctx.user, b.chat); const ws = tools.wsDir(ctx.user.id, chat); let file;
+  if (b.upload) { const up = q.one('SELECT id,mime FROM uploads WHERE id=? AND user_id=?', String(b.upload), ctx.user.id); if (!up || !/^image\//.test(up.mime)) throw auth.fail(404, 'Foto não encontrada'); file = path.join(cfg.dataDir, 'uploads', up.id); }
+  else { file = tools.safePath(ws, String(b.path || '')); if (!/\.(png|jpe?g|webp)$/i.test(file)) throw auth.fail(400, 'Só dá para editar foto'); }
+  if (!fs.existsSync(file)) throw auth.fail(404, 'Foto não encontrada');
+  const day = new Date().toISOString().slice(0, 10); const uid2 = ctx.user.id;
+  const used = (q.one('SELECT n FROM image_usage WHERE user_id=? AND day=?', uid2, day) || { n: 0 }).n;
+  if (used >= cfg.image.dailyLimit) throw auth.fail(429, `Você já usou as ${cfg.image.dailyLimit} imagens de hoje. Volta amanhã.`, 'limit');
+  const ac = new AbortController(); ctx.req.on('close', () => { if (!ctx.res.writableEnded) ac.abort(); });
+  let out;
+  try { out = await images.edit({ b64: fs.readFileSync(file).toString('base64'), prompt, strength: b.strength, signal: ac.signal }); }
+  catch (e) { throw auth.fail(502, 'Não consegui editar: ' + e.message, 'image'); }
+  const rv = await images.review(prompt, out, ac.signal);
+  if (!rv.ok) throw auth.fail(422, 'A revisão não deixou mostrar essa imagem' + (rv.reason ? ': ' + rv.reason : '') + '.', 'review');
+  q.run('INSERT INTO image_usage(user_id,day,n) VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET n=n+1', uid2, day);
+  const dir = path.join(ws, 'imagens'); fs.mkdirSync(dir, { recursive: true });
+  const name = 'edicao-' + Date.now() + '.png'; fs.writeFileSync(path.join(dir, name), Buffer.from(out, 'base64'));
+  const part = { kind: 'image', path: 'imagens/' + name, name };
+  q.run('INSERT INTO messages(chat_id,role,text,parts,ts) VALUES(?,?,?,?,?)', chat.id, 'assistant', '', JSON.stringify([part]), Date.now());
+  H.json(ctx.res, 200, { part });
+});
+
+/* ---------- conta ---------- */
+on('DELETE', '/api/chats', (ctx) => {
+  for (const c of q.all('SELECT id FROM chats WHERE user_id=?', ctx.user.id)) { const ac = active.get(c.id); if (ac) ac.abort(); }
+  q.run('DELETE FROM chats WHERE user_id=?', ctx.user.id); H.json(ctx.res, 200, { ok: true });
+});
+on('GET', '/api/account/export', (ctx) => {
+  const u = ctx.user; const chats = q.all('SELECT id,title,project_id,ts FROM chats WHERE user_id=?', u.id).map((c) => ({ ...c, messages: q.all('SELECT role,text,ts FROM messages WHERE chat_id=? ORDER BY id', c.id) }));
+  H.json(ctx.res, 200, { exportedAt: new Date().toISOString(), user: { email: u.email, name: u.name }, projects: q.all('SELECT id,name,type,ts FROM projects WHERE user_id=?', u.id), chats, memory: q.all('SELECT note FROM memory WHERE user_id=?', u.id).map((m) => m.note) });
+});
+on('DELETE', '/api/account', async (ctx) => {
+  const b = await H.readJson(ctx.req); if (b.confirm !== true) throw auth.fail(400, 'Confirme para apagar a conta.');
+  const id = ctx.user.id;
+  for (const c of q.all('SELECT id FROM chats WHERE user_id=?', id)) { const ac = active.get(c.id); if (ac) ac.abort(); }
+  for (const up of q.all('SELECT id FROM uploads WHERE user_id=?', id)) { try { fs.unlinkSync(path.join(cfg.dataDir, 'uploads', up.id)); } catch {} }
+  q.run('DELETE FROM uploads WHERE user_id=?', id); q.run('DELETE FROM usage WHERE user_id=?', id); q.run('DELETE FROM image_usage WHERE user_id=?', id);
+  try { fs.rmSync(path.join(cfg.dataDir, 'ws', String(id)), { recursive: true, force: true }); } catch {}
+  q.run('DELETE FROM users WHERE id=?', id); H.json(ctx.res, 200, { ok: true });
 });
 
 /* ---------- projetos ---------- */

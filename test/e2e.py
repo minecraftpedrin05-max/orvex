@@ -85,10 +85,10 @@ with sync_playwright() as p:
     pg.screenshot(path=OUT + '/14-connector-form-dark.png')
     pg.click('[data-back=s-connectors]'); pg.locator('#cn-list .item', has_text='API personalizada').click()
     pg.fill('#cf-url', 'http://127.0.0.1:3222'); pg.fill('#cf-token', 'abc12345'); pg.click('#cn-body .btn.solid')
-    pg.wait_for_selector('#cn-body .sw'); assert pg.locator('#cn-body .sw').count() == 2; assert pg.locator('#cn-body .sw').nth(0).get_attribute('aria-checked') == 'true' and pg.locator('#cn-body .sw').nth(1).get_attribute('aria-checked') == 'false'; ok('conectado: leitura ligada e escrita desligada por padrão')
-    pg.locator('#cn-body .sw').nth(1).click(); pg.wait_for_timeout(400); pg.screenshot(path=OUT + '/15-connector-perms-dark.png')
+    pg.wait_for_selector('#cn-body .permx'); assert pg.locator('#cn-body .permx').count() == 2; assert pg.locator('#cn-body .permx').nth(0).locator('.seg button[aria-pressed=true]').inner_text() == 'Permitir' and pg.locator('#cn-body .permx').nth(1).locator('.seg button[aria-pressed=true]').inner_text() == 'Bloquear'; ok('conectado: leitura ligada e escrita desligada por padrão')
+    pg.locator('#cn-body .permx').nth(1).locator('.seg button').nth(0).click(); pg.wait_for_timeout(500); pg.screenshot(path=OUT + '/15-connector-perms-dark.png')
     pg.reload(); pg.wait_for_selector('#s-chat.on'); pg.click('#b-menu'); pg.click('#d-set'); pg.click('#st-conn'); pg.wait_for_selector('#cn-list .item')
-    pg.locator('#cn-list .item', has_text='API personalizada').click(); pg.wait_for_selector('#cn-body .sw'); assert pg.locator('#cn-body .sw').nth(1).get_attribute('aria-checked') == 'true'; ok('permissão fica salva e a tela de conectores abre também pelas configurações')
+    pg.locator('#cn-list .item', has_text='API personalizada').click(); pg.wait_for_selector('#cn-body .permx'); assert pg.locator('#cn-body .permx').nth(1).locator('.seg button[aria-pressed=true]').inner_text() == 'Permitir'; ok('permissão fica salva e a tela de conectores abre também pelas configurações')
     pg.click('#cn-body .btn:not(.solid)'); pg.wait_for_selector('#s-connectors.on'); assert 'Não conectado' in pg.locator('#cn-list .item', has_text='API personalizada').inner_text(); ok('desconectar')
     pg.locator('.screen.on [data-back]').first.click()
 

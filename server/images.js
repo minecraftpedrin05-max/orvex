@@ -66,4 +66,20 @@ async function generate(ctx, args) {
   }
 }
 
-module.exports = { generate, enabled };
+/** Edita uma imagem que já existe (img2img). Só funciona com servidor estilo AUTOMATIC1111/Forge/sd-server. Devolve base64. */
+async function edit({ b64, prompt, strength, signal }) {
+  if (cfg.provider === 'mock' && !cfg.image.baseUrl) return PNG_MOCK;
+  if (!cfg.image.baseUrl) throw new Error('o gerador de imagens não está configurado neste servidor');
+  if (cfg.image.api === 'openai') throw new Error('editar foto precisa de um servidor de imagem estilo AUTOMATIC1111 (IMAGE_API=a1111)');
+  const base = cfg.image.baseUrl.replace(/\/$/, ''); const sig = AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(5 * 60e3)]);
+  let r;
+  try {
+    r = await fetch(base + '/sdapi/v1/img2img', { method: 'POST', signal: sig, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ init_images: [b64], prompt, denoising_strength: Math.max(0.2, Math.min(0.95, Number(strength) || 0.55)), steps: cfg.image.steps, cfg_scale: cfg.image.cfg, width: cfg.image.size, height: cfg.image.size }) });
+  } catch (e) { throw new Error('não consegui falar com o servidor de imagens'); }
+  if (!r.ok) throw new Error('o servidor de imagens respondeu ' + r.status);
+  const j = await r.json(); if (!j.images || !j.images[0]) throw new Error('o servidor de imagens não devolveu imagem');
+  return String(j.images[0]).replace(/^data:image\/\w+;base64,/, '');
+}
+
+module.exports = { generate, enabled, edit, review };

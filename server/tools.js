@@ -153,7 +153,7 @@ async function execTool(name, args, ctx) {
   try {
     switch (name) {
       case 'run_command': {
-        ctx.emit({ type: 'status', key: 'run' });
+        ctx.emit({ type: 'status', key: 'run', arg: String(args.command || '').replace(/\s+/g, ' ').slice(0, 70) });
         return await runCommand(ctx, String(args.command || ''), timeout);
       }
       case 'write_file': {
@@ -162,17 +162,18 @@ async function execTool(name, args, ctx) {
         if (!rel || rel.startsWith('..')) throw new Error('Caminho inválido');
         const content = String(args.content ?? '');
         if (content.length > 5_000_000) throw new Error('Arquivo grande demais');
-        ctx.emit({ type: 'status', key: 'make', arg: rel.split(path.sep)[0] });
+        { const parts = rel.split(path.sep); ctx.emit({ type: 'status', key: parts.length > 1 ? 'makeFolder' : 'makeCode', arg: parts.length > 1 ? parts[0] : parts[0] }); }
         fs.mkdirSync(path.dirname(full), { recursive: true });
         fs.writeFileSync(full, content);
         return `Arquivo ${rel} salvo (${content.length} caracteres).`;
       }
       case 'read_file': {
-        const full = safePath(ctx.ws, args.path);
+        const full = safePath(ctx.ws, args.path); ctx.emit({ type: 'status', key: 'readf', arg: path.basename(full) });
         if (!fs.statSync(full).isFile()) throw new Error('Não é um arquivo');
         return clip(fs.readFileSync(full, 'utf8'), 20000);
       }
       case 'list_files': {
+        ctx.emit({ type: 'status', key: 'listf' });
         const full = safePath(ctx.ws, args.path || '.');
         const lines = [];
         (function walk(d, depth) {
@@ -192,7 +193,7 @@ async function execTool(name, args, ctx) {
         return 'Entregue ao usuário: ' + rel;
       }
       case 'web_search': {
-        ctx.emit({ type: 'status', key: 'work' });
+        ctx.emit({ type: 'status', key: 'search', arg: String(args.query || '').slice(0, 50) });
         const r = await fetch('https://html.duckduckgo.com/html/', {
           method: 'POST', signal: ctx.signal,
           headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0 ORVEX' },
@@ -208,12 +209,12 @@ async function execTool(name, args, ctx) {
         return out.length ? out.join('\n\n') : 'Nenhum resultado.';
       }
       case 'fetch_url': {
-        ctx.emit({ type: 'status', key: 'work' });
+        ctx.emit({ type: 'status', key: 'openUrl', arg: String(args.url || '').replace(/^https?:\/\//, '').slice(0, 50) });
         const r = await httpRequest({ url: String(args.url), method: String(args.method || 'GET').toUpperCase(), headers: args.headers || {}, body: args.body }, ctx.signal);
         return `HTTP ${r.status} (${r.type})\n` + clip(r.text, 12000);
       }
       case 'browse': {
-        ctx.emit({ type: 'status', key: 'work' });
+        ctx.emit({ type: 'status', key: 'browse', arg: String(args.url || '').replace(/^https?:\/\//, '').slice(0, 50) });
         const bin = findChrome();
         if (!bin) return 'ERRO: não há navegador instalado neste servidor (instale chromium ou defina CHROME_BIN).';
         const url = (await assertPublicUrl(String(args.url))).href;

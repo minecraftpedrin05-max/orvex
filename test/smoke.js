@@ -31,7 +31,7 @@ const { server } = require('../server/index.js');
   assert(ev.some((e) => e.type === 'delta') && ev.at(-1).type === 'done'); ok('chat responde em streaming');
 
   ev = await send('chat0002', { text: 'crie uma pasta com um site', speed: 'slow', lang: 'pt' });
-  const keys = ev.filter((e) => e.type === 'status').map((e) => e.key); assert(keys.includes('make') && keys.includes('run')); ok('modo devagar escreve e roda no terminal');
+  const keys = ev.filter((e) => e.type === 'status').map((e) => e.key); assert((keys.includes('make') || keys.includes('makeFolder') || keys.includes('makeCode')) && keys.includes('run')); ok('modo devagar escreve e roda no terminal');
   const pres = ev.find((e) => e.type === 'present'); assert(pres && pres.kind === 'folder' && pres.name === 'meu-site'); ok('pasta entregue como cartão');
   ev = await send('chat0003', { text: 'crie uma pasta com um site', speed: 'fast' });
   assert(!ev.some((e) => e.type === 'status' && e.key === 'run')); ok('modo rápido não usa o terminal');
@@ -103,7 +103,7 @@ const { server } = require('../server/index.js');
   };
   let bad = await api('POST', '/api/connectors/github/connect', { fields: { token: 'tok-ruim' } }); assert.equal(bad.status, 400); assert(/Não consegui conectar/.test(bad.error) && !bad.error.includes('tok-ruim')); ok('token errado é recusado sem vazar o token');
   let con = await api('POST', '/api/connectors/github/connect', { fields: { token: 'tok-ok' } }); assert.equal(con.connector.label, '@ana');
-  assert.deepEqual(con.connector.perms.map((p) => [p.id, p.on]), [['read', true], ['write', false]]); ok('conectar GitHub: ler ligado, escrever desligado por padrão');
+  assert.deepEqual(con.connector.perms.map((p) => [p.id, p.on]), [['read', true], ['write', false], ['issues', false], ['pulls', false], ['delete', false]]); assert.equal(con.connector.perms[0].mode, 'allow'); ok('conectar GitHub: ler ligado, o resto desligado por padrão');
   const dbx = require('../server/db'); const raw = dbx.q.one("SELECT secret FROM connectors WHERE kind='github'").secret; assert(!raw.includes('tok-ok') && !Buffer.from(raw, 'base64').toString('latin1').includes('tok-ok')); ok('token fica criptografado no banco');
   assert(!JSON.stringify(await api('GET', '/api/connectors')).includes('tok-ok')); ok('token nunca volta para o app');
 
@@ -124,6 +124,24 @@ const { server } = require('../server/index.js');
   txt = ev.filter((e) => e.type === 'delta').map((e) => e.text).join(''); assert(txt.includes('meu-site.netlify.app'), txt); assert(ev.some((e) => e.type === 'status' && e.key === 'host' && e.arg === 'Netlify')); ok('hospedar no Netlify (zip da pasta) com status "Hospedando"');
   const dep = seen.find((x) => x.url.includes('/deploys')); assert.equal(dep.headers['Content-Type'], 'application/zip'); assert.equal(Buffer.from(dep.body).readUInt32LE(0), 0x04034b50);
   fs.writeFileSync(path.join(process.env.DATA_DIR, 'n.zip'), Buffer.from(dep.body)); const lz = require('child_process').spawnSync('unzip', ['-l', path.join(process.env.DATA_DIR, 'n.zip')], { encoding: 'utf8' }); assert(/\bindex\.html\b/.test(lz.stdout) && !/site-net\/index/.test(lz.stdout)); ok('o zip enviado tem index.html na raiz');
+
+  // permissão "Perguntar": a IA espera o usuário
+  {
+    const cn = require('../server/connectors'); const uid3 = dbx.q.one("SELECT id FROM users WHERE email='teste@exemplo.com'").id;
+    const base3 = { user: { id: uid3 }, emit() {}, signal: new AbortController().signal, ws: process.env.DATA_DIR };
+    await api('POST', '/api/connectors/github/perms', { perms: { write: 'ask' } });
+    assert.equal((await api('GET', '/api/connectors')).connectors.find((c) => c.id === 'github').perms.find((p) => p.id === 'write').mode, 'ask');
+    let asked = null;
+    let r3 = await cn.execute({ ...base3, ask: async (i) => { asked = i; return 'deny'; } }, 'github', 'write_file', { repo: 'ana/site', path: 'b.txt', content: 'x' });
+    assert(/NEGADO/.test(r3) && asked && asked.connector === 'GitHub'); ok('modo Perguntar: o usuário nega e a IA não faz');
+    r3 = await cn.execute({ ...base3, ask: async () => 'always' }, 'github', 'write_file', { repo: 'ana/site', path: 'b.txt', content: 'x' });
+    assert(!/NEGADO|BLOQUEADO/.test(r3)); assert.equal((await api('GET', '/api/connectors')).connectors.find((c) => c.id === 'github').perms.find((p) => p.id === 'write').mode, 'allow'); ok('"Sempre permitir" faz e liga a permissão');
+    await api('POST', '/api/connectors/github/perms', { perms: { all: 'off' } });
+    assert((await api('GET', '/api/connectors')).connectors.find((c) => c.id === 'github').perms.every((p) => p.mode === 'off')); ok('bloquear tudo de uma vez');
+    await api('POST', '/api/connectors/github/perms', { perms: { all: 'allow' } });
+    assert((await api('GET', '/api/connectors')).connectors.find((c) => c.id === 'github').perms.every((p) => p.mode === 'allow')); ok('permitir tudo de uma vez');
+    const ap = require('../server/approvals'); const evs = []; const pr = ap.ask('c1', { x: 1 }, (e) => evs.push(e)); assert(ap.answer('c1', evs[0].id, 'allow')); assert.equal(await pr, 'allow'); ok('pedido de permissão espera a resposta');
+  }
   globalThis.fetch = realFetch;
 
   // login com GitHub (GitHub falso)

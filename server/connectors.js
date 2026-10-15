@@ -156,7 +156,7 @@ const CATALOG = [
 
   /* ===== Código ===== */
   {
-    id: 'github', name: 'GitHub', cat: 'code', fields: TOKEN, help: 'https://github.com/settings/personal-access-tokens', perms: ['read', 'write'],
+    id: 'github', name: 'GitHub', cat: 'code', fields: TOKEN, help: 'https://github.com/settings/personal-access-tokens', perms: ['read', 'write', 'issues', 'pulls', 'delete'],
     base: 'https://api.github.com', headers: (c) => ({ Authorization: 'Bearer ' + c.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }),
     check: async (h) => { const r = await h('GET', '/user'); return '@' + r.data.login; },
     actions: () => {
@@ -177,7 +177,18 @@ const CATALOG = [
           for (const f of files) await put(h, p.repo, f.rel, f.data, p.message || 'Enviado pelo ORVEX', p.branch);
           return { ok: true, files: files.length, url: 'https://github.com/' + p.repo };
         }),
-        A('create_issue', 'write', 'Abre uma issue', { repo: 'dono/nome', title: '', body: '' }, async (h, p) => { repoOk(p.repo); need(p, 'title'); const r = (await h('POST', `/repos/${p.repo}/issues`, { body: { title: p.title, body: p.body || '' } })).data; return { number: r.number, url: r.html_url }; }),
+        A('create_issue', 'issues', 'Abre uma issue', { repo: 'dono/nome', title: '', body: '' }, async (h, p) => { repoOk(p.repo); need(p, 'title'); const r = (await h('POST', `/repos/${p.repo}/issues`, { body: { title: p.title, body: p.body || '' } })).data; return { number: r.number, url: r.html_url }; }),
+        A('list_branches', 'read', 'Lista os branches', { repo: 'dono/nome' }, async (h, p) => { repoOk(p.repo); return (await h('GET', `/repos/${p.repo}/branches`, { query: { per_page: 50 } })).data.map((b) => b.name); }),
+        A('list_commits', 'read', 'Lista os últimos commits', { repo: 'dono/nome', branch: 'opcional' }, async (h, p) => { repoOk(p.repo); return (await h('GET', `/repos/${p.repo}/commits`, { query: { per_page: 15, sha: p.branch } })).data.map((c) => ({ sha: c.sha.slice(0, 7), message: c.commit.message.split('\n')[0], author: c.commit.author.name, at: c.commit.author.date })); }),
+        A('list_pulls', 'read', 'Lista os pull requests abertos', { repo: 'dono/nome' }, async (h, p) => { repoOk(p.repo); return (await h('GET', `/repos/${p.repo}/pulls`, { query: { state: 'open', per_page: 20 } })).data.map((x) => ({ number: x.number, title: x.title, from: x.head.ref, url: x.html_url })); }),
+        A('get_issue', 'read', 'Lê uma issue com os comentários', { repo: 'dono/nome', number: 'número' }, async (h, p) => { repoOk(p.repo); need(p, 'number'); const i = (await h('GET', `/repos/${p.repo}/issues/${encodeURIComponent(p.number)}`)).data; const cm = (await h('GET', `/repos/${p.repo}/issues/${encodeURIComponent(p.number)}/comments`, { query: { per_page: 20 } })).data; return { title: i.title, state: i.state, body: i.body, comments: cm.map((c) => ({ user: c.user.login, text: c.body })) }; }),
+        A('create_branch', 'write', 'Cria um branch a partir de outro', { repo: 'dono/nome', name: 'novo branch', from: 'branch de origem (padrão: o principal)' }, async (h, p) => { repoOk(p.repo); need(p, 'name'); const from = p.from || (await h('GET', `/repos/${p.repo}`)).data.default_branch; const sha = (await h('GET', `/repos/${p.repo}/git/ref/heads/${encPath(from)}`)).data.object.sha; await h('POST', `/repos/${p.repo}/git/refs`, { body: { ref: 'refs/heads/' + p.name, sha } }); return { ok: true, branch: p.name }; }),
+        A('comment_issue', 'issues', 'Comenta em uma issue ou pull request', { repo: 'dono/nome', number: 'número', text: 'comentário' }, async (h, p) => { repoOk(p.repo); need(p, 'number', 'text'); const r = (await h('POST', `/repos/${p.repo}/issues/${encodeURIComponent(p.number)}/comments`, { body: { body: String(p.text).slice(0, 6000) } })).data; return { ok: true, url: r.html_url }; }),
+        A('close_issue', 'issues', 'Fecha uma issue', { repo: 'dono/nome', number: 'número' }, async (h, p) => { repoOk(p.repo); need(p, 'number'); await h('PATCH', `/repos/${p.repo}/issues/${encodeURIComponent(p.number)}`, { body: { state: 'closed' } }); return { ok: true }; }),
+        A('create_pull', 'pulls', 'Abre um pull request', { repo: 'dono/nome', title: '', head: 'branch com as mudanças', base: 'branch de destino (padrão: o principal)', body: 'opcional' }, async (h, p) => { repoOk(p.repo); need(p, 'title', 'head'); const base = p.base || (await h('GET', `/repos/${p.repo}`)).data.default_branch; const r = (await h('POST', `/repos/${p.repo}/pulls`, { body: { title: p.title, head: p.head, base, body: p.body || '' } })).data; return { number: r.number, url: r.html_url }; }),
+        A('merge_pull', 'pulls', 'Junta (merge) um pull request', { repo: 'dono/nome', number: 'número' }, async (h, p) => { repoOk(p.repo); need(p, 'number'); const r = (await h('PUT', `/repos/${p.repo}/pulls/${encodeURIComponent(p.number)}/merge`, { body: {} })).data; return { merged: r.merged, message: r.message }; }),
+        A('delete_file', 'delete', 'Apaga um arquivo de um repositório', { repo: 'dono/nome', path: 'caminho', branch: 'opcional' }, async (h, p) => { repoOk(p.repo); need(p, 'path'); const cur = (await h('GET', `/repos/${p.repo}/contents/${encPath(p.path)}`, { query: { ref: p.branch } })).data; await h('DELETE', `/repos/${p.repo}/contents/${encPath(p.path)}`, { body: { message: 'Apagado pelo ORVEX', sha: cur.sha, branch: p.branch || undefined } }); return { ok: true }; }),
+        A('delete_repo', 'delete', 'Apaga um repositório inteiro (não dá para desfazer)', { repo: 'dono/nome' }, async (h, p) => { repoOk(p.repo); await h('DELETE', `/repos/${p.repo}`); return { ok: true }; }),
       ];
     },
   },
@@ -224,6 +235,112 @@ const CATALOG = [
       A('search', 'read', 'Procura páginas', { query: 'texto' }, async (h, p) => (await h('POST', '/search', { body: { query: p.query || '', page_size: 10 } })).data.results.map((x) => ({ id: x.id, type: x.object, title: x.properties && Object.values(x.properties).filter((v) => v.type === 'title').map((v) => v.title.map((t) => t.plain_text).join(''))[0] || x.title && x.title.map((t) => t.plain_text).join(''), url: x.url }))),
       A('read_page', 'read', 'Lê o conteúdo de uma página', { page_id: 'id' }, async (h, p) => { need(p, 'page_id'); return (await h('GET', `/blocks/${encodeURIComponent(p.page_id)}/children`, { query: { page_size: 100 } })).data.results.map((b) => b[b.type] && b[b.type].rich_text ? b[b.type].rich_text.map((t) => t.plain_text).join('') : '').filter(Boolean); }),
       A('create_page', 'write', 'Cria uma página dentro de outra página', { parent_page_id: 'id da página pai', title: 'título', text: 'conteúdo' }, async (h, p) => { need(p, 'parent_page_id', 'title'); const r = (await h('POST', '/pages', { body: { parent: { page_id: p.parent_page_id }, properties: { title: { title: [{ text: { content: String(p.title).slice(0, 200) } }] } }, children: String(p.text || '').split('\n').filter(Boolean).slice(0, 90).map((t) => ({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ text: { content: t.slice(0, 1900) } }] } })) } })).data; return { id: r.id, url: r.url }; }),
+    ],
+  },
+
+  /* ===== Código (GitLab) ===== */
+  {
+    id: 'gitlab', name: 'GitLab', cat: 'code', fields: TOKEN, help: 'https://gitlab.com/-/user_settings/personal_access_tokens', perms: ['read', 'write', 'issues', 'pulls'],
+    base: 'https://gitlab.com/api/v4', headers: (c) => ({ 'PRIVATE-TOKEN': c.token }),
+    check: async (h) => '@' + (await h('GET', '/user')).data.username,
+    actions: () => [
+      A('list_projects', 'read', 'Lista os projetos', {}, async (h) => (await h('GET', '/projects', { query: { membership: true, per_page: 30, order_by: 'last_activity_at' } })).data.map((x) => ({ id: x.id, path: x.path_with_namespace, private: x.visibility !== 'public' }))),
+      A('list_issues', 'read', 'Lista as issues abertas', { project: 'id ou dono/nome' }, async (h, p) => { need(p, 'project'); return (await h('GET', `/projects/${encodeURIComponent(p.project)}/issues`, { query: { state: 'opened', per_page: 20 } })).data.map((i) => ({ iid: i.iid, title: i.title, url: i.web_url })); }),
+      A('read_file', 'read', 'Lê um arquivo de um projeto', { project: 'id ou dono/nome', path: 'caminho', ref: 'branch (padrão HEAD)' }, async (h, p) => { need(p, 'project', 'path'); const r = (await h('GET', `/projects/${encodeURIComponent(p.project)}/repository/files/${encodeURIComponent(p.path)}`, { query: { ref: p.ref || 'HEAD' } })).data; return Buffer.from(r.content, 'base64').toString('utf8'); }),
+      A('write_file', 'write', 'Cria ou altera um arquivo', { project: 'id ou dono/nome', path: 'caminho', content: 'texto', branch: 'padrão main', message: 'commit' }, async (h, p) => {
+        need(p, 'project', 'path', 'content'); const u = `/projects/${encodeURIComponent(p.project)}/repository/files/${encodeURIComponent(p.path)}`; const body = { branch: p.branch || 'main', content: String(p.content), commit_message: p.message || 'Atualizado pelo ORVEX' };
+        try { await h('PUT', u, { body }); } catch { await h('POST', u, { body }); } return { ok: true };
+      }),
+      A('create_issue', 'issues', 'Abre uma issue', { project: 'id ou dono/nome', title: '', description: '' }, async (h, p) => { need(p, 'project', 'title'); const r = (await h('POST', `/projects/${encodeURIComponent(p.project)}/issues`, { body: { title: p.title, description: p.description || '' } })).data; return { iid: r.iid, url: r.web_url }; }),
+      A('create_merge_request', 'pulls', 'Abre um merge request', { project: 'id ou dono/nome', source_branch: '', target_branch: 'padrão main', title: '' }, async (h, p) => { need(p, 'project', 'source_branch', 'title'); const r = (await h('POST', `/projects/${encodeURIComponent(p.project)}/merge_requests`, { body: { source_branch: p.source_branch, target_branch: p.target_branch || 'main', title: p.title } })).data; return { iid: r.iid, url: r.web_url }; }),
+    ],
+  },
+
+  /* ===== Jogos (Roblox) ===== */
+  {
+    id: 'roblox', name: 'Roblox', cat: 'game', fields: [{ k: 'token', type: 'password', label: 'f_robloxkey' }, { k: 'universe_id', type: 'text', label: 'f_universe' }, { k: 'place_id', type: 'text', label: 'f_place', optional: true }],
+    help: 'https://create.roblox.com/dashboard/credentials', perms: ['read', 'run', 'deploy'],
+    base: 'https://apis.roblox.com', headers: (c) => ({ 'x-api-key': c.token }),
+    check: async (h, conn, c) => { if (!/^\d+$/.test(c.universe_id || '')) throw new Error('o Universe ID é só números'); const r = await h('GET', `/cloud/v2/universes/${c.universe_id}`); return r.data.displayName || ('Universe ' + c.universe_id); },
+    // O Roblox Studio em si não dá para controlar de fora. O Open Cloud deixa rodar scripts Luau num lugar do jogo e publicar o arquivo do lugar.
+    actions: () => [
+      A('get_universe', 'read', 'Mostra os dados do jogo (universe)', {}, async (h, p, ctx, c) => (await h('GET', `/cloud/v2/universes/${c.universe_id}`)).data),
+      A('list_datastores', 'read', 'Lista os DataStores do jogo', {}, async (h, p, ctx, c) => (await h('GET', `/cloud/v2/universes/${c.universe_id}/data-stores`)).data),
+      A('run_luau', 'run', 'Roda um script Luau dentro do lugar do jogo e devolve a saída (precisa do Place ID)', { script: 'código Luau', place_id: 'opcional se já foi salvo' }, async (h, p, ctx, c) => {
+        need(p, 'script'); const place = p.place_id || c.place_id; if (!/^\d+$/.test(String(place || ''))) throw new Error('falta o Place ID (configure no conector)');
+        const t = (await h('POST', `/cloud/v2/universes/${c.universe_id}/places/${place}/luau-execution-session-tasks`, { body: { script: String(p.script).slice(0, 60000), timeout: '30s' } })).data;
+        for (let i = 0; i < 25; i++) {
+          await new Promise((r) => setTimeout(r, 2000)); const g = (await h('GET', `/cloud/v2/${t.path}`)).data;
+          if (g.state === 'COMPLETE') return { ok: true, output: g.output && g.output.results };
+          if (g.state === 'FAILED' || g.state === 'CANCELLED') return { ok: false, error: g.error || g.state };
+        }
+        return { ok: false, error: 'demorou demais; veja o resultado depois' };
+      }),
+      A('publish_place', 'deploy', 'Publica um arquivo .rbxl ou .rbxlx do espaço de trabalho como nova versão do lugar', { file: 'caminho do arquivo .rbxl/.rbxlx', place_id: 'opcional', type: 'Saved ou Published (padrão Saved)' }, async (h, p, ctx, c) => {
+        need(p, 'file'); const place = p.place_id || c.place_id; if (!/^\d+$/.test(String(place || ''))) throw new Error('falta o Place ID (configure no conector)');
+        const full = tools.safePath(ctx.ws, p.file); if (!/\.rbxlx?$/i.test(full)) throw new Error('precisa ser .rbxl ou .rbxlx');
+        const r = (await h('POST', `/universes/v1/${c.universe_id}/places/${place}/versions`, { query: { versionType: p.type === 'Published' ? 'Published' : 'Saved' }, body: fs.readFileSync(full), headers: { 'Content-Type': /x$/i.test(full) ? 'application/xml' : 'application/octet-stream' } })).data;
+        return { ok: true, version: r.versionNumber };
+      }),
+    ],
+  },
+
+  /* ===== Tarefas e dados ===== */
+  {
+    id: 'linear', name: 'Linear', cat: 'tasks', fields: TOKEN, help: 'https://linear.app/settings/account/security', perms: ['read', 'write'],
+    base: 'https://api.linear.app/graphql', headers: (c) => ({ Authorization: c.token }),
+    gql: async (h, query, variables) => { const r = await h('POST', '', { body: { query, variables } }); if (r.data && r.data.errors) throw new Error(r.data.errors.map((e) => e.message).join('; ')); return r.data.data; },
+    check: async (h, conn) => (await conn.gql(h, '{ viewer { name } }')).viewer.name || 'Linear',
+    actions: (conn) => [
+      A('list_teams', 'read', 'Lista os times', {}, async (h) => (await conn.gql(h, '{ teams { nodes { id name key } } }')).teams.nodes),
+      A('list_issues', 'read', 'Lista as issues mais recentes', {}, async (h) => (await conn.gql(h, '{ issues(first: 25, orderBy: updatedAt) { nodes { id identifier title state { name } url } } }')).issues.nodes),
+      A('create_issue', 'write', 'Cria uma issue', { team_id: 'id do time', title: '', description: '' }, async (h, p) => { need(p, 'team_id', 'title'); return (await conn.gql(h, 'mutation($i:IssueCreateInput!){ issueCreate(input:$i){ issue { identifier url } } }', { i: { teamId: p.team_id, title: p.title, description: p.description || '' } })).issueCreate.issue; }),
+    ],
+  },
+  {
+    id: 'todoist', name: 'Todoist', cat: 'tasks', fields: TOKEN, help: 'https://app.todoist.com/app/settings/integrations/developer', perms: ['read', 'write', 'delete'],
+    base: 'https://api.todoist.com/rest/v2', headers: (c) => ({ Authorization: 'Bearer ' + c.token }),
+    check: async (h) => 'Todoist (' + (await h('GET', '/projects')).data.length + ' projetos)',
+    actions: () => [
+      A('list_projects', 'read', 'Lista os projetos', {}, async (h) => (await h('GET', '/projects')).data.map((x) => ({ id: x.id, name: x.name }))),
+      A('list_tasks', 'read', 'Lista as tarefas abertas', { project_id: 'opcional' }, async (h, p) => (await h('GET', '/tasks', { query: { project_id: p.project_id } })).data.map((t) => ({ id: t.id, content: t.content, due: t.due && t.due.string }))),
+      A('create_task', 'write', 'Cria uma tarefa', { content: 'texto', due_string: 'ex.: amanhã às 9h (opcional)', project_id: 'opcional' }, async (h, p) => { need(p, 'content'); const r = (await h('POST', '/tasks', { body: { content: p.content, due_string: p.due_string, due_lang: 'pt', project_id: p.project_id } })).data; return { id: r.id, url: r.url }; }),
+      A('complete_task', 'write', 'Marca uma tarefa como feita', { task_id: 'id' }, async (h, p) => { need(p, 'task_id'); await h('POST', `/tasks/${encodeURIComponent(p.task_id)}/close`); return { ok: true }; }),
+      A('delete_task', 'delete', 'Apaga uma tarefa', { task_id: 'id' }, async (h, p) => { need(p, 'task_id'); await h('DELETE', `/tasks/${encodeURIComponent(p.task_id)}`); return { ok: true }; }),
+    ],
+  },
+  {
+    id: 'trello', name: 'Trello', cat: 'tasks', fields: [{ k: 'key', type: 'password', label: 'f_key' }, { k: 'token', type: 'password', label: 'f_token' }], help: 'https://trello.com/power-ups/admin', perms: ['read', 'write'],
+    base: 'https://api.trello.com/1', headers: () => ({}),
+    check: async (h, conn, c) => '@' + (await h('GET', '/members/me', { query: { key: c.key, token: c.token } })).data.username,
+    actions: () => [
+      A('list_boards', 'read', 'Lista os quadros', {}, async (h, p, ctx, c) => (await h('GET', '/members/me/boards', { query: { key: c.key, token: c.token, fields: 'name,url' } })).data),
+      A('list_cards', 'read', 'Lista os cartões de um quadro', { board_id: 'id do quadro' }, async (h, p, ctx, c) => { need(p, 'board_id'); return (await h('GET', `/boards/${encodeURIComponent(p.board_id)}/cards`, { query: { key: c.key, token: c.token, fields: 'name,idList,url' } })).data; }),
+      A('list_lists', 'read', 'Lista as colunas de um quadro', { board_id: 'id do quadro' }, async (h, p, ctx, c) => { need(p, 'board_id'); return (await h('GET', `/boards/${encodeURIComponent(p.board_id)}/lists`, { query: { key: c.key, token: c.token, fields: 'name' } })).data; }),
+      A('create_card', 'write', 'Cria um cartão numa coluna', { list_id: 'id da coluna', name: '', desc: '' }, async (h, p, ctx, c) => { need(p, 'list_id', 'name'); const r = (await h('POST', '/cards', { query: { key: c.key, token: c.token, idList: p.list_id, name: p.name, desc: p.desc || '' } })).data; return { id: r.id, url: r.url }; }),
+    ],
+  },
+  {
+    id: 'airtable', name: 'Airtable', cat: 'tasks', fields: TOKEN, help: 'https://airtable.com/create/tokens', perms: ['read', 'write', 'delete'],
+    base: 'https://api.airtable.com/v0', headers: (c) => ({ Authorization: 'Bearer ' + c.token }),
+    check: async (h) => (await h('GET', '/meta/whoami')).data.email || 'Airtable',
+    actions: () => [
+      A('list_bases', 'read', 'Lista as bases', {}, async (h) => (await h('GET', '/meta/bases')).data.bases.map((b) => ({ id: b.id, name: b.name }))),
+      A('list_records', 'read', 'Lista registros de uma tabela', { base_id: 'id da base', table: 'nome ou id da tabela' }, async (h, p) => { need(p, 'base_id', 'table'); return (await h('GET', `/${encodeURIComponent(p.base_id)}/${encodeURIComponent(p.table)}`, { query: { maxRecords: 25 } })).data.records; }),
+      A('create_record', 'write', 'Cria um registro', { base_id: '', table: '', fields: 'objeto {coluna: valor}' }, async (h, p) => { need(p, 'base_id', 'table', 'fields'); return (await h('POST', `/${encodeURIComponent(p.base_id)}/${encodeURIComponent(p.table)}`, { body: { fields: p.fields } })).data; }),
+      A('update_record', 'write', 'Altera um registro', { base_id: '', table: '', record_id: '', fields: 'objeto' }, async (h, p) => { need(p, 'base_id', 'table', 'record_id', 'fields'); return (await h('PATCH', `/${encodeURIComponent(p.base_id)}/${encodeURIComponent(p.table)}/${encodeURIComponent(p.record_id)}`, { body: { fields: p.fields } })).data; }),
+      A('delete_record', 'delete', 'Apaga um registro', { base_id: '', table: '', record_id: '' }, async (h, p) => { need(p, 'base_id', 'table', 'record_id'); await h('DELETE', `/${encodeURIComponent(p.base_id)}/${encodeURIComponent(p.table)}/${encodeURIComponent(p.record_id)}`); return { ok: true }; }),
+    ],
+  },
+  {
+    id: 'cloudflare', name: 'Cloudflare', cat: 'host', fields: TOKEN, help: 'https://dash.cloudflare.com/profile/api-tokens', perms: ['read', 'write', 'delete'],
+    base: 'https://api.cloudflare.com/client/v4', headers: (c) => ({ Authorization: 'Bearer ' + c.token }),
+    check: async (h) => 'Cloudflare (' + (await h('GET', '/user/tokens/verify')).data.result.status + ')',
+    actions: () => [
+      A('list_zones', 'read', 'Lista os domínios', {}, async (h) => (await h('GET', '/zones', { query: { per_page: 30 } })).data.result.map((z) => ({ id: z.id, name: z.name, status: z.status }))),
+      A('list_dns', 'read', 'Lista os registros DNS de um domínio', { zone_id: 'id do domínio' }, async (h, p) => { need(p, 'zone_id'); return (await h('GET', `/zones/${encodeURIComponent(p.zone_id)}/dns_records`, { query: { per_page: 50 } })).data.result.map((r) => ({ id: r.id, type: r.type, name: r.name, content: r.content })); }),
+      A('create_dns', 'write', 'Cria um registro DNS', { zone_id: '', type: 'A, CNAME, TXT...', name: '', content: '', proxied: 'true/false' }, async (h, p) => { need(p, 'zone_id', 'type', 'name', 'content'); return (await h('POST', `/zones/${encodeURIComponent(p.zone_id)}/dns_records`, { body: { type: p.type, name: p.name, content: p.content, ttl: 1, proxied: p.proxied === true || p.proxied === 'true' } })).data.result; }),
+      A('delete_dns', 'delete', 'Apaga um registro DNS', { zone_id: '', record_id: '' }, async (h, p) => { need(p, 'zone_id', 'record_id'); await h('DELETE', `/zones/${encodeURIComponent(p.zone_id)}/dns_records/${encodeURIComponent(p.record_id)}`); return { ok: true }; }),
     ],
   },
 
@@ -277,7 +394,8 @@ const CATALOG = [
   },
 ];
 const BY_ID = Object.fromEntries(CATALOG.map((c) => [c.id, c]));
-const DEFAULT_ON = { read: true };
+const DEFAULT_ON = { read: 'allow' };
+const modeOf = (p, perm) => (p[perm] === true || p[perm] === 'allow' ? 'allow' : p[perm] === 'ask' ? 'ask' : 'off'); // true/false antigos continuam valendo
 
 /* ---------- dados do usuário ---------- */
 function row(userId, kind) { return q.one('SELECT * FROM connectors WHERE user_id=? AND kind=?', userId, kind); }
@@ -293,7 +411,7 @@ function view(userId, conn) {
   const r = row(userId, conn.id); const p = r ? permsOf(r) : null; const acts = r ? actionsOf(conn, r) : (conn.id === 'mcp' ? [] : conn.actions(conn));
   return {
     id: conn.id, name: conn.name, cat: conn.cat, help: conn.help || '', fields: conn.fields, connected: !!r, label: r ? r.label || '' : '',
-    perms: conn.perms.map((id) => ({ id, on: !!(p && p[id]), actions: acts.filter((a) => a.perm.split('|').includes(id)).map((a) => a.id) })),
+    perms: conn.perms.map((id) => ({ id, on: !!(p && modeOf(p, id) !== 'off'), mode: p ? modeOf(p, id) : 'off', actions: acts.filter((a) => a.perm.split('|').includes(id)).map((a) => a.id) })),
   };
 }
 const list = (userId) => CATALOG.map((c) => view(userId, c));
@@ -308,7 +426,7 @@ async function connect(userId, kind, fields, signal) {
   let label, meta = null;
   try {
     if (conn.id === 'mcp') { meta = await conn.discover(conn, c, signal); label = new URL(c.url).host + ' · ' + meta.length + ' ferramentas'; }
-    else label = await conn.check((m, pth, o) => http(conn, c, m, pth, { ...o, signal }), conn);
+    else label = await conn.check((m, pth, o) => http(conn, c, m, pth, { ...o, signal }), conn, c);
     if (conn.id === 'custom') label = new URL(c.url).host;
   } catch (e) { throw fail(400, 'Não consegui conectar: ' + redact(e.message, c), 'connect'); }
   const old = row(userId, kind);
@@ -319,25 +437,27 @@ async function connect(userId, kind, fields, signal) {
 
 function setPerms(userId, kind, perms) {
   const conn = BY_ID[kind]; const r = row(userId, kind); if (!conn || !r) throw fail(404, 'Conector não está ligado');
-  const cur = permsOf(r); for (const id of conn.perms) if (perms && typeof perms[id] === 'boolean') cur[id] = perms[id];
+  const cur = permsOf(r); const MODES = ['allow', 'ask', 'off'];
+  if (perms && MODES.includes(perms.all)) for (const id of conn.perms) cur[id] = perms.all; // "permitir tudo", "perguntar tudo" ou "bloquear tudo"
+  else for (const id of conn.perms) { const v = perms && perms[id]; if (typeof v === 'boolean') cur[id] = v ? 'allow' : 'off'; else if (MODES.includes(v)) cur[id] = v; }
   q.run('UPDATE connectors SET perms=? WHERE user_id=? AND kind=?', JSON.stringify(cur), userId, kind);
   return view(userId, conn);
 }
 function disconnect(userId, kind) { q.run('DELETE FROM connectors WHERE user_id=? AND kind=?', userId, kind); }
 
 /* ---------- uso pela IA ---------- */
-const PERM_PT = { read: 'ler', write: 'criar e alterar', deploy: 'hospedar', delete: 'apagar', send: 'enviar mensagens' };
+const PERM_PT = { read: 'ler', write: 'criar e alterar', deploy: 'hospedar', delete: 'apagar', send: 'enviar mensagens', issues: 'abrir e comentar issues', pulls: 'criar e juntar pull requests', run: 'rodar código' };
 
 /** Texto para o prompt da IA: o que está ligado e o que cada ação precisa. */
 function promptFor(userId) {
   const lines = [];
   for (const r of q.all('SELECT * FROM connectors WHERE user_id=?', userId)) {
     const conn = BY_ID[r.kind]; if (!conn) continue; const p = permsOf(r); const acts = actionsOf(conn, r);
-    const ok = acts.filter((a) => a.perm.split('|').some((x) => p[x])); const blocked = conn.perms.filter((x) => !p[x]).map((x) => PERM_PT[x] || x);
+    const ok = acts.filter((a) => a.perm.split('|').some((x) => modeOf(p, x) !== 'off')); const blocked = conn.perms.filter((x) => modeOf(p, x) === 'off').map((x) => PERM_PT[x] || x);
     const fmt = (a) => `${a.id}(${typeof a.params === 'string' ? a.params : Object.keys(a.params || {}).join(', ')})`;
     lines.push(`- ${conn.id} (${conn.name}): ${ok.map(fmt).join('; ') || 'nenhuma ação liberada'}${blocked.length ? `. Bloqueado pelo usuário: ${blocked.join(', ')}` : ''}`);
   }
-  return lines.length ? 'Conectores ligados (use a ferramenta connector com connector, action e params):\n' + lines.join('\n') + '\nSe precisar de algo bloqueado, diga ao usuário para liberar em Menu > Conectores. Não peça a permissão no chat.' : '';
+  return lines.length ? 'Conectores ligados (use a ferramenta connector com connector, action e params):\n' + lines.join('\n') + '\nSe uma ação estiver marcada para perguntar, o app pergunta ao usuário sozinho: apenas chame a ação. Se precisar de algo bloqueado, diga ao usuário para liberar em Menu > Conectores.' : '';
 }
 
 async function execute(ctx, kind, action, params) {
@@ -357,8 +477,13 @@ async function execute(ctx, kind, action, params) {
     if (!a) return `ERRO: ação desconhecida. Disponíveis em ${conn.name}: ` + conn.actions(conn).map((x) => x.id).join(', ');
   }
   const perm = conn.permOf ? conn.permOf(a, p) : a.perm;
-  if (!permsOf(r)[perm]) return `BLOQUEADO: o usuário não permitiu "${PERM_PT[perm] || perm}" no ${conn.name}. Diga a ele para ativar em Menu > Conectores > ${conn.name} e tentar de novo. Não faça de outro jeito.`;
-  ctx.emit({ type: 'status', key: perm === 'deploy' ? 'host' : 'work', arg: conn.name });
+  const mode = modeOf(permsOf(r), perm);
+  if (mode === 'ask' && ctx.ask) {
+    const ans = await ctx.ask({ connector: conn.name, action: a.id, perm: PERM_PT[perm] || perm, detail: Object.entries(p).slice(0, 4).map(([k, v]) => k + ': ' + String(typeof v === 'string' ? v : JSON.stringify(v)).slice(0, 80)).join(' · ') });
+    if (ans === 'deny') return `NEGADO: o usuário não deixou fazer "${a.id}" no ${conn.name} agora. Não tente de novo, avise que não foi feito.`;
+    if (ans === 'always') { try { setPerms(ctx.user.id, conn.id, { [perm]: 'allow' }); } catch {} }
+  } else if (mode !== 'allow') return `BLOQUEADO: o usuário não permitiu "${PERM_PT[perm] || perm}" no ${conn.name}. Diga a ele para ativar em Menu > Conectores > ${conn.name} e tentar de novo. Não faça de outro jeito.`;
+  ctx.emit({ type: 'status', key: perm === 'deploy' ? 'host' : 'useConn', arg: perm === 'deploy' ? conn.name : conn.name + ' · ' + a.id });
   try {
     let out;
     if (conn.id === 'mcp') {
@@ -367,7 +492,7 @@ async function execute(ctx, kind, action, params) {
         const txt = (res.content || []).map((x) => (x.type === 'text' ? x.text : `[${x.type}]`)).join('\n');
         return res.isError ? Promise.reject(new Error(txt || 'erro da ferramenta')) : txt;
       });
-    } else out = await a.run((m, pth, o) => http(conn, c, m, pth, { ...o, signal: ctx.signal }), p, ctx);
+    } else out = await a.run((m, pth, o) => http(conn, c, m, pth, { ...o, signal: ctx.signal }), p, ctx, c);
     return clip(typeof out === 'string' ? out : JSON.stringify(out, null, 1), 12000);
   } catch (e) { return 'ERRO: ' + redact(e.message || String(e), c); }
 }

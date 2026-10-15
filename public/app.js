@@ -78,6 +78,31 @@
       install: 'Instalar', seeFiles: 'Ver archivos', view: 'Ver el contenido', emptyFolder: 'Carpeta vacía.', binary: 'No es un archivo de texto. Usa Instalar para descargarlo.', truncated: 'Mostrando solo el inicio del archivo.',
       speechNo: 'La voz a texto no funciona en este dispositivo.', attachFail: 'No pude subir el adjunto.', still: 'La IA aún está respondiendo este chat.', sessionEnd: 'Inicia sesión de nuevo.' },
   };
+
+  var EXTRA = {
+    pt: { makeFolder: 'Criando pasta {f}', makeCode: 'Criando código {f}', readf: 'Lendo {f}', listf: 'Vendo os arquivos', search: 'Pesquisando: {f}', openUrl: 'Abrindo {f}', browse: 'Navegando em {f}', useConn: 'Usando {f}',
+      p_issues: 'Abrir e comentar issues', p_pulls: 'Criar e juntar pull requests', p_run: 'Rodar código', mode_allow: 'Permitir', mode_ask: 'Perguntar', mode_off: 'Bloquear', allowAll: 'Permitir tudo', askAll: 'Perguntar tudo', blockAll: 'Bloquear tudo',
+      permsHint2: 'Perguntar: a IA para e espera você tocar em Permitir ou Negar. Permitir: ela faz sem perguntar. Bloquear: ela não faz.', cat_game: 'Jogos', cat_tasks: 'Tarefas e dados',
+      f_key: 'Chave (API key)', f_universe: 'Universe ID (só números)', f_place: 'Place ID (opcional)', f_robloxkey: 'Chave do Open Cloud (API key)',
+      askTitle: 'A IA quer {a} no {c}', askAllow: 'Permitir', askAlways: 'Sempre permitir', askDeny: 'Negar', askSent: 'Resposta enviada.',
+      edit: 'Editar foto', editPh: 'O que mudar na foto? Ex.: deixa a camisa azul', apply: 'Aplicar', editing: 'Editando a foto...', acct: 'Conta', clearChats: 'Apagar todas as conversas', clearAsk: 'Apagar TODAS as conversas? Não dá para desfazer.',
+      exportData: 'Baixar meus dados', delAccount: 'Excluir minha conta', delAsk: 'Excluir a conta e tudo que está nela? Não dá para desfazer.', done: 'Pronto.' },
+    en: { makeFolder: 'Creating folder {f}', makeCode: 'Creating code {f}', readf: 'Reading {f}', listf: 'Looking at the files', search: 'Searching: {f}', openUrl: 'Opening {f}', browse: 'Browsing {f}', useConn: 'Using {f}',
+      p_issues: 'Open and comment on issues', p_pulls: 'Create and merge pull requests', p_run: 'Run code', mode_allow: 'Allow', mode_ask: 'Ask', mode_off: 'Block', allowAll: 'Allow all', askAll: 'Ask for all', blockAll: 'Block all',
+      permsHint2: 'Ask: the AI stops and waits for you to tap Allow or Deny. Allow: it does it without asking. Block: it will not do it.', cat_game: 'Games', cat_tasks: 'Tasks and data',
+      f_key: 'Key (API key)', f_universe: 'Universe ID (numbers only)', f_place: 'Place ID (optional)', f_robloxkey: 'Open Cloud key (API key)',
+      askTitle: 'The AI wants to {a} on {c}', askAllow: 'Allow', askAlways: 'Always allow', askDeny: 'Deny', askSent: 'Answer sent.',
+      edit: 'Edit photo', editPh: 'What to change in the photo? E.g. make the shirt blue', apply: 'Apply', editing: 'Editing the photo...', acct: 'Account', clearChats: 'Delete all chats', clearAsk: 'Delete ALL chats? This cannot be undone.',
+      exportData: 'Download my data', delAccount: 'Delete my account', delAsk: 'Delete the account and everything in it? This cannot be undone.', done: 'Done.' },
+    es: { makeFolder: 'Creando carpeta {f}', makeCode: 'Creando código {f}', readf: 'Leyendo {f}', listf: 'Mirando los archivos', search: 'Buscando: {f}', openUrl: 'Abriendo {f}', browse: 'Navegando en {f}', useConn: 'Usando {f}',
+      p_issues: 'Abrir y comentar issues', p_pulls: 'Crear y unir pull requests', p_run: 'Ejecutar código', mode_allow: 'Permitir', mode_ask: 'Preguntar', mode_off: 'Bloquear', allowAll: 'Permitir todo', askAll: 'Preguntar todo', blockAll: 'Bloquear todo',
+      permsHint2: 'Preguntar: la IA se detiene y espera que toques Permitir o Negar. Permitir: lo hace sin preguntar. Bloquear: no lo hace.', cat_game: 'Juegos', cat_tasks: 'Tareas y datos',
+      f_key: 'Clave (API key)', f_universe: 'Universe ID (solo números)', f_place: 'Place ID (opcional)', f_robloxkey: 'Clave de Open Cloud (API key)',
+      askTitle: 'La IA quiere {a} en {c}', askAllow: 'Permitir', askAlways: 'Permitir siempre', askDeny: 'Negar', askSent: 'Respuesta enviada.',
+      edit: 'Editar foto', editPh: '¿Qué cambiar en la foto? Ej.: pon la camiseta azul', apply: 'Aplicar', editing: 'Editando la foto...', acct: 'Cuenta', clearChats: 'Borrar todas las conversaciones', clearAsk: '¿Borrar TODAS las conversaciones? No se puede deshacer.',
+      exportData: 'Descargar mis datos', delAccount: 'Eliminar mi cuenta', delAsk: '¿Eliminar la cuenta y todo lo que tiene? No se puede deshacer.', done: 'Listo.' }
+  };
+  Object.keys(EXTRA).forEach(function (k) { if (T[k]) for (var x in EXTRA[k]) T[k][x] = EXTRA[k][x]; });
   var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
   var L = 'en';
   for (var li = 0; li < langs.length; li++) { var c0 = String(langs[li]).slice(0, 2).toLowerCase(); if (T[c0]) { L = c0; break; } }
@@ -375,7 +400,7 @@
   function addUser(text, atts) {
     $('empty').hidden = true;
     if (text) msgs.appendChild(el('div', 'bub me', text));
-    if (atts && atts.length) { var a = el('div', 'att'); atts.forEach(function (x) { var th = thumb(x); a.appendChild(th || el('span', '', x.name)); }); msgs.appendChild(a); }
+    if (atts && atts.length) { var a = el('div', 'att'); atts.forEach(function (x) { var th = thumb(x); if (th && /^image\//.test(x.mime || '')) { th.style.cursor = 'zoom-in'; th.onclick = function () { if (th.src) openLightbox(th.src, { chatId: cur && cur.id, upload: x.id, name: x.name }); }; } a.appendChild(th || el('span', '', x.name)); }); msgs.appendChild(a); }
     bottom();
   }
 
@@ -390,7 +415,8 @@
   function partCard(part, chatId) {
     if (part.kind === 'image') {
       var img = el('img', 'shot'); img.alt = part.name; img.loading = 'lazy';
-      linkFor(chatId, part.path, false).then(function (u) { img.src = u; }).catch(function () {}); return img;
+      linkFor(chatId, part.path, false).then(function (u) { img.src = u; }).catch(function () {});
+      img.style.cursor = 'zoom-in'; img.onclick = function () { if (img.src) openLightbox(img.src, { chatId: chatId, path: part.path, name: part.name }); }; return img;
     }
     var card = el('div', 'folder'), head = el('div', 'fhead');
     var ic = el('span', 'ficon'); ic.innerHTML = part.kind === 'folder' ? I.folder : I.doc; head.appendChild(ic); head.appendChild(el('b', '', part.name));
@@ -416,6 +442,30 @@
     } else ar.onclick = function () { openViewer(chatId, part.path, part.name); };
     head.appendChild(ar); card.appendChild(head); card.appendChild(tree); return card;
   }
+  /* ----- visualizador de foto (toque na imagem) com lápis para editar ----- */
+  function openLightbox(src, o) {
+    var old = document.getElementById('lb'); if (old) old.remove();
+    var lb = el('div', 'lb'); lb.id = 'lb';
+    var img = el('img'); img.src = src; img.alt = o.name || '';
+    var x = el('button', 'lbtn lx'); x.innerHTML = I.x; x.setAttribute('aria-label', t('close')); x.onclick = function () { lb.remove(); };
+    lb.appendChild(img); lb.appendChild(x);
+    if (srv.imageEdit && o.chatId) {
+      var pen = el('button', 'lbtn lp'); pen.innerHTML = SV + '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg>'; pen.setAttribute('aria-label', t('edit')); pen.title = t('edit');
+      var bar = el('div', 'lbar'); bar.hidden = true; var inp2 = el('input'); inp2.placeholder = t('editPh'); var ok = el('button', 'btn solid', t('apply')); var er = el('small', 'lerr');
+      pen.onclick = function () { bar.hidden = !bar.hidden; if (!bar.hidden) inp2.focus(); };
+      ok.onclick = async function () {
+        var pr = inp2.value.trim(); if (!pr) return; ok.disabled = true; ok.textContent = t('editing'); er.textContent = '';
+        try {
+          var r = await api('POST', '/api/images/edit', { chat: o.chatId, path: o.path, upload: o.upload, prompt: pr });
+          var u = await linkFor(o.chatId, r.part.path, false); img.src = u; o = { chatId: o.chatId, path: r.part.path, name: r.part.name }; inp2.value = ''; bar.hidden = true;
+          if (cur && cur.id === o.chatId) { var am = newAssistant(); am._p.appendChild(partCard(r.part, o.chatId)); msgs.appendChild(am); bottom(); }
+        } catch (e) { er.textContent = errText(e); }
+        ok.disabled = false; ok.textContent = t('apply');
+      };
+      bar.appendChild(inp2); bar.appendChild(ok); bar.appendChild(er); lb.appendChild(pen); lb.appendChild(bar);
+    }
+    document.body.appendChild(lb);
+  }
   async function openViewer(chatId, path, name) {
     var v = $('viewer'), body = $('v-body'); body.innerHTML = ''; $('v-title').textContent = name; $('v-copy').innerHTML = ''; v.classList.add('on');
     try {
@@ -440,8 +490,27 @@
   }
 
   /* ================= envio (streaming) ================= */
-  function setBusy(b) { busy = b; if (!b) lsSet('orvex:run', null); $('ic-send').hidden = b; $('ic-stop').hidden = !b; $('b-send').setAttribute('aria-label', t(b ? 'stop' : 'send')); upd(); if (b) $('b-send').disabled = false; }
-  function statusText(ev) { return t(ev.key, { f: ev.arg || '' }) + '...'; }
+  function setBusy(b) { busy = b; if (!b) lsSet('orvex:run', null); $('ic-send').toggleAttribute('hidden', b); $('ic-stop').toggleAttribute('hidden', !b); $('b-send').setAttribute('aria-label', t(b ? 'stop' : 'send')); upd(); if (b) $('b-send').disabled = false; }
+  function statusText(ev) { var base = t(ev.key, { f: ev.arg || '' }); if (ev.key === 'run' && ev.arg) base += ': ' + ev.arg; return base + '...'; }
+  // texto do status + segundos que já passaram (aparece depois de 5 s)
+  function setSt(sp, text) { sp._b = text; sp._t = Date.now(); sp.textContent = text; }
+  setInterval(function () {
+    var list = document.querySelectorAll('.status span');
+    for (var i = 0; i < list.length; i++) { var sp = list[i]; if (!sp._b) continue; var sec = Math.floor((Date.now() - sp._t) / 1000); if (sec >= 5) sp.textContent = sp._b.replace(/\.\.\.$/, '') + '... ' + sec + 's'; }
+  }, 1000);
+  function showAsk(ev, chatId) {
+    if (document.getElementById('ask-' + ev.id)) return;
+    var c = el('div', 'askcard'); c.id = 'ask-' + ev.id;
+    c.appendChild(el('b', '', t('askTitle', { a: ev.action, c: ev.connector }))); if (ev.detail) c.appendChild(el('small', '', ev.detail)); c.appendChild(el('small', '', ev.perm));
+    var row = el('div', 'arow');
+    [['allow', 'askAllow', 'btn solid'], ['always', 'askAlways', 'btn'], ['deny', 'askDeny', 'btn']].forEach(function (x) {
+      var b = el('button', x[2], t(x[1])); b.onclick = async function () {
+        Array.prototype.forEach.call(row.children, function (z) { z.disabled = true; });
+        try { await api('POST', '/api/chats/' + chatId + '/approve', { id: ev.id, answer: x[0] }); row.replaceWith(el('small', '', t('askSent'))); } catch (e) { toast(errText(e)); Array.prototype.forEach.call(row.children, function (z) { z.disabled = false; }); }
+      }; row.appendChild(b);
+    });
+    c.appendChild(row); msgs.appendChild(c); bottom();
+  }
 
   function send() {
     var text = inp.value.trim(); if (!text && !pending.length) return;
@@ -464,7 +533,7 @@
 
   async function run(job) {
     setBusy(true); lsSet('orvex:run', job.chatId); var ac = new AbortController(); abortCtl = ac; var rs = { ac: ac, synced: false, stopped: false, chatId: job.chatId, last: Date.now() }; curRun = rs; var gotDone = false;
-    var st = el('div', 'status'); st.innerHTML = '<b></b>'; var stSpan = el('span', '', t('think') + '...'); st.appendChild(stSpan); msgs.appendChild(st); bottom();
+    var st = el('div', 'status'); st.innerHTML = '<b></b>'; var stSpan = el('span', '', t('think') + '...'); setSt(stSpan, t('think') + '...'); st.appendChild(stSpan); msgs.appendChild(st); bottom();
     var am = null; var text = ''; var raf = 0;
     function ensure() { if (!am) { am = newAssistant(); msgs.insertBefore(am, st); } return am; }
     function draw() { raf = 0; if (am) { fillText(am, text, true); bottom(); } }
@@ -483,7 +552,8 @@
           var block = buf.slice(0, idx); buf = buf.slice(idx + 2);
           block.split('\n').forEach(function (line) {
             if (line.indexOf('data: ') !== 0) return; var ev; try { ev = JSON.parse(line.slice(6)); } catch (e) { return; }
-            if (ev.type === 'status') stSpan.textContent = statusText(ev);
+            if (ev.type === 'status') setSt(stSpan, statusText(ev));
+            else if (ev.type === 'ask') showAsk(ev, job.chatId);
             else if (ev.type === 'delta') { ensure(); text += ev.text; if (!raf) raf = requestAnimationFrame(draw); }
             else if (ev.type === 'present') { ensure()._p.appendChild(partCard(ev, job.chatId)); bottom(); }
             else if (ev.type === 'error') toast(ev.message);
@@ -507,7 +577,7 @@
   /* Voltou para o app (ou a conexão caiu) com a IA ainda trabalhando: espera o servidor terminar e mostra o resultado. */
   var curRun = null;
   async function resync(job, st, stSpan, rs) {
-    rs.synced = true; abortCtl = rs.ac; stSpan.textContent = t('think') + '...';
+    rs.synced = true; abortCtl = rs.ac; setSt(stSpan, t('think') + '...');
     var r = null; var misses = 0;
     for (var i = 0; i < 450; i++) {
       try { r = await api('GET', '/api/chats/' + job.chatId); misses = 0; if (!r.running || rs.stopped) break; }
@@ -531,7 +601,7 @@
   // Chat que ainda está respondendo no servidor (voltou para o app ou a página recarregou): mostra "Pensando..." e espera o resultado.
   function watchRunning(id) {
     setBusy(true); lsSet('orvex:run', id);
-    var st = el('div', 'status'); st.innerHTML = '<b></b>'; var sp = el('span', '', t('think') + '...'); st.appendChild(sp); msgs.appendChild(st); bottom();
+    var st = el('div', 'status'); st.innerHTML = '<b></b>'; var sp = el('span', '', t('think') + '...'); setSt(sp, t('think') + '...'); st.appendChild(sp); msgs.appendChild(st); bottom();
     var rs = { ac: new AbortController(), synced: true, stopped: false, chatId: id }; curRun = rs; abortCtl = rs.ac;
     resync({ chatId: id }, st, sp, rs);
   }
@@ -561,6 +631,7 @@
       var r = await api('GET', '/api/chats/' + id);
       cur = { id: r.chat.id, project_id: r.chat.project_id }; curProject = r.chat.project_id || null;
       renderHistory(r.messages, r.chat.id); $('ctitle').textContent = projName(curProject) || 'ORVEX'; show('s-chat');
+      (r.asks || []).forEach(function (a) { showAsk(a, id); });
       if (r.running) watchRunning(id); else { curRun = null; abortCtl = null; setBusy(false); }
     } catch (e) { toast(errText(e)); }
   }
@@ -572,6 +643,14 @@
   $('d-set').onclick = function () { closeDrawer(); $('st-name').textContent = user.name; $('st-mail2').textContent = user.email; $('st-lang').textContent = L.toUpperCase(); $('st-ai').hidden = !user.admin; show('s-settings'); };
   document.querySelectorAll('[data-back]').forEach(function (b) { b.onclick = function () { show(b.getAttribute('data-back') || 's-chat'); }; });
   $('d-out').onclick = function () { doLogout(false); }; $('st-out').onclick = function () { doLogout(false); };
+
+  /* ================= conta ================= */
+  $('ac-clear').onclick = async function () { if (!confirm(t('clearAsk'))) return; try { await api('DELETE', '/api/chats'); data.chats = []; newChat(null); toast(t('done')); } catch (e) { toast(errText(e)); } };
+  $('ac-export').onclick = async function () {
+    try { var j = await api('GET', '/api/account/export'); var bl = new Blob([JSON.stringify(j, null, 2)], { type: 'application/json' }); var a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = 'orvex-meus-dados.json'; document.body.appendChild(a); a.click(); a.remove(); }
+    catch (e) { toast(errText(e)); }
+  };
+  $('ac-del').onclick = async function () { if (!confirm(t('delAsk'))) return; try { await api('DELETE', '/api/account', { confirm: true }); doLogout(true); } catch (e) { toast(errText(e)); } };
 
   /* ================= projetos ================= */
   $('pj-add').onclick = function () { $('pj-form').classList.toggle('on'); $('pj-name').focus(); };
@@ -618,7 +697,7 @@
 
 
   /* ================= conectores ================= */
-  var CATS = ['host', 'code', 'msg', 'notes', 'other']; var conns = [];
+  var CATS = ['host', 'code', 'game', 'tasks', 'msg', 'notes', 'other']; var conns = [];
   var plugIcon = SV + '<path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 01-12 0zM12 17v4"/></svg>';
   async function loadConnectors() { try { conns = (await api('GET', '/api/connectors')).connectors; } catch (e) { toast(errText(e)); } drawConnectors(); }
   function drawConnectors() {
@@ -655,17 +734,24 @@
     } else {
       var s = el('div', 'cstat'); s.appendChild(el('i', 'dot')); s.appendChild(el('span', '', t('connectedAs', { n: c.label || c.name }))); s.style.color = 'var(--fg)'; b.appendChild(s);
       b.appendChild(el('div', 'grp', t('perms')));
-      c.perms.forEach(function (p) {
-        var row = el('div', 'perm'), tx = el('div', 'pt'); tx.appendChild(el('b', '', t('p_' + p.id)));
-        tx.appendChild(el('small', '', p.actions.length ? p.actions.join(', ') : t('noActions'))); row.appendChild(tx);
-        var sw = el('button', 'sw'); sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', p.on); sw.setAttribute('aria-label', t('p_' + p.id));
-        sw.onclick = async function () {
-          var on = sw.getAttribute('aria-checked') !== 'true'; sw.setAttribute('aria-checked', on); var o = {}; o[p.id] = on;
-          try { replace((await api('POST', '/api/connectors/' + c.id + '/perms', { perms: o })).connector); } catch (e) { sw.setAttribute('aria-checked', !on); toast(errText(e)); }
-        };
-        row.appendChild(sw); b.appendChild(row);
+      var all = el('div', 'seg allseg');
+      [['allow', 'allowAll'], ['ask', 'askAll'], ['off', 'blockAll']].forEach(function (m) {
+        var bt = el('button', '', t(m[1])); bt.onclick = async function () { try { replace((await api('POST', '/api/connectors/' + c.id + '/perms', { perms: { all: m[0] } })).connector); openConnector(c.id); } catch (e) { toast(errText(e)); } }; all.appendChild(bt);
       });
-      b.appendChild(el('p', 'hint', t('permsHint')));
+      b.appendChild(all);
+      c.perms.forEach(function (p) {
+        var row = el('div', 'perm permx'), tx = el('div', 'pt'); tx.appendChild(el('b', '', t('p_' + p.id)));
+        tx.appendChild(el('small', '', p.actions.length ? p.actions.join(', ') : t('noActions'))); row.appendChild(tx);
+        var seg = el('div', 'seg');
+        ['allow', 'ask', 'off'].forEach(function (m) {
+          var bt = el('button', '', t('mode_' + m)); bt.setAttribute('aria-pressed', p.mode === m);
+          bt.onclick = async function () {
+            try { var o = {}; o[p.id] = m; replace((await api('POST', '/api/connectors/' + c.id + '/perms', { perms: o })).connector); openConnector(c.id); } catch (e) { toast(errText(e)); }
+          }; seg.appendChild(bt);
+        });
+        row.appendChild(seg); b.appendChild(row);
+      });
+      b.appendChild(el('p', 'hint', t('permsHint2')));
       var d = el('button', 'btn', t('disconnect')); d.style.marginTop = '12px';
       d.onclick = async function () { try { await api('DELETE', '/api/connectors/' + c.id); await loadConnectors(); show('s-connectors'); } catch (e) { toast(errText(e)); } };
       b.appendChild(d);
