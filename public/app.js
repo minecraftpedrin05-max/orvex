@@ -299,7 +299,7 @@
   function renderChips() {
     var a = $('attached'); a.innerHTML = ''; a.hidden = !pending.length;
     pending.forEach(function (p, i) {
-      var c = el('div', 'chip2'); var th = thumb(p); if (th) { c.className = 'chip2 pic'; c.appendChild(th); } else c.appendChild(el('span', '', p.name));
+      var c = el('div', 'chip2'); var th = thumb(p); if (th) { c.className = 'chip2 pic'; c.appendChild(th); if (/^image\//.test(p.mime || '')) { th.style.cursor = 'zoom-in'; th.onclick = function () { if (th.src) openLightbox(th.src, { upload: p.id, name: p.name }); }; } } else c.appendChild(el('span', '', p.name));
       var x = el('button'); x.innerHTML = I.x; x.setAttribute('aria-label', t('remove')); x.onclick = function () { pending.splice(i, 1); renderChips(); upd(); }; c.appendChild(x); a.appendChild(c);
     });
   }
@@ -449,12 +449,12 @@
     var img = el('img'); img.src = src; img.alt = o.name || '';
     var x = el('button', 'lbtn lx'); x.innerHTML = I.x; x.setAttribute('aria-label', t('close')); x.onclick = function () { lb.remove(); };
     lb.appendChild(img); lb.appendChild(x);
-    if (srv.imageEdit && o.chatId) {
+    if (true) {
       var pen = el('button', 'lbtn lp'); pen.innerHTML = SV + '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></svg>'; pen.setAttribute('aria-label', t('edit')); pen.title = t('edit');
       var bar = el('div', 'lbar'); bar.hidden = true; var inp2 = el('input'); inp2.placeholder = t('editPh'); var ok = el('button', 'btn solid', t('apply')); var er = el('small', 'lerr');
       pen.onclick = function () { bar.hidden = !bar.hidden; if (!bar.hidden) inp2.focus(); };
       ok.onclick = async function () {
-        var pr = inp2.value.trim(); if (!pr) return; ok.disabled = true; ok.textContent = t('editing'); er.textContent = '';
+        var pr = inp2.value.trim(); if (!pr) return; if (!o.chatId) { er.textContent = 'Envie a mensagem primeiro, depois toque na foto no chat para editar.'; return; } ok.disabled = true; ok.textContent = t('editing'); er.textContent = '';
         try {
           var r = await api('POST', '/api/images/edit', { chat: o.chatId, path: o.path, upload: o.upload, prompt: pr });
           var u = await linkFor(o.chatId, r.part.path, false); img.src = u; o = { chatId: o.chatId, path: r.part.path, name: r.part.name }; inp2.value = ''; bar.hidden = true;
