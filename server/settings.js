@@ -31,7 +31,10 @@ const FIELDS = [
   { id: 'dockerImage', path: 'dockerImage', type: 'name', group: 'terminal' },
   { id: 'execNet', path: 'execNetwork', type: 'name', group: 'terminal' },
   { id: 'privUrls', path: 'allowPrivateUrls', type: 'bool', group: 'limits' },
-  { id: 'dailyLimit', path: 'dailyLimit', type: 'num', min: 1, max: 100000, group: 'limits' },
+  { id: 'pointsTotal', path: 'pointsTotal', type: 'num', min: 1, max: 1000000, group: 'limits' },
+  { id: 'pointsCost', path: 'pointsCost', type: 'num', min: 0.01, max: 1000, group: 'limits' },
+  { id: 'cooldownHours', path: 'cooldownHours', type: 'num', min: 0, max: 720, group: 'limits' },
+  { id: 'cooldownMinutes', path: 'cooldownMinutes', type: 'num', min: 0, max: 59, group: 'limits' },
 ];
 
 const get = (o, p) => p.split('.').reduce((a, k) => a[k], o);

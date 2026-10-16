@@ -80,21 +80,27 @@
   };
 
   var EXTRA = {
-    pt: { makeFolder: 'Criando pasta {f}', makeCode: 'Criando código {f}', readf: 'Lendo {f}', listf: 'Vendo os arquivos', search: 'Pesquisando: {f}', openUrl: 'Abrindo {f}', browse: 'Navegando em {f}', useConn: 'Usando {f}',
+    pt: { limHit: 'Limite de uso atingido', limPct: '{p}% do limite utilizado', limReset: 'Reinicia {when}', limWait: 'Ao chegar no limite, espera {d}', upgrade: 'Fazer upgrade', plansSoon: 'Os planos chegam em breve.', today: 'hoje', tomorrow: 'amanhã', atTime: 'às {h}', offT: 'IA fora do ar', offS: 'Estamos voltando em breve. Tente de novo daqui a pouco.', eLimit: 'Você chegou no limite de uso.',
+      f_pointsTotal: 'Pontos por pessoa', f_pointsCost: 'Pontos que cada comando custa', f_cooldownHours: 'Tempo de espera ao zerar (horas)', f_cooldownMinutes: 'Tempo de espera ao zerar (minutos)', pointsHint: 'Cada comando da IA (mensagem, ferramenta, arquivo entregue) gasta pontos. Quando zera, a pessoa espera o tempo abaixo. O dono não tem limite.',
+      makeFolder: 'Criando pasta {f}', makeCode: 'Criando código {f}', readf: 'Lendo {f}', listf: 'Vendo os arquivos', search: 'Pesquisando: {f}', openUrl: 'Abrindo {f}', browse: 'Navegando em {f}', useConn: 'Usando {f}',
       p_issues: 'Abrir e comentar issues', p_pulls: 'Criar e juntar pull requests', p_run: 'Rodar código', mode_allow: 'Permitir', mode_ask: 'Perguntar', mode_off: 'Bloquear', allowAll: 'Permitir tudo', askAll: 'Perguntar tudo', blockAll: 'Bloquear tudo',
       permsHint2: 'Perguntar: a IA para e espera você tocar em Permitir ou Negar. Permitir: ela faz sem perguntar. Bloquear: ela não faz.', cat_game: 'Jogos', cat_tasks: 'Tarefas e dados',
       f_key: 'Chave (API key)', f_universe: 'Universe ID (só números)', f_place: 'Place ID (opcional)', f_robloxkey: 'Chave do Open Cloud (API key)',
       askTitle: 'A IA quer {a} no {c}', askAllow: 'Permitir', askAlways: 'Sempre permitir', askDeny: 'Negar', askSent: 'Resposta enviada.',
       edit: 'Editar foto', editPh: 'O que mudar na foto? Ex.: deixa a camisa azul', apply: 'Aplicar', editing: 'Editando a foto...', acct: 'Conta', clearChats: 'Apagar todas as conversas', clearAsk: 'Apagar TODAS as conversas? Não dá para desfazer.',
       exportData: 'Baixar meus dados', delAccount: 'Excluir minha conta', delAsk: 'Excluir a conta e tudo que está nela? Não dá para desfazer.', done: 'Pronto.' },
-    en: { makeFolder: 'Creating folder {f}', makeCode: 'Creating code {f}', readf: 'Reading {f}', listf: 'Looking at the files', search: 'Searching: {f}', openUrl: 'Opening {f}', browse: 'Browsing {f}', useConn: 'Using {f}',
+    en: { limHit: 'Usage limit reached', limPct: '{p}% of the limit used', limReset: 'Resets {when}', limWait: 'When you reach the limit, you wait {d}', upgrade: 'Upgrade', plansSoon: 'Plans are coming soon.', today: 'today', tomorrow: 'tomorrow', atTime: 'at {h}', offT: 'AI is offline', offS: 'We will be back soon. Please try again in a moment.', eLimit: 'You reached the usage limit.',
+      f_pointsTotal: 'Points per person', f_pointsCost: 'Points each command costs', f_cooldownHours: 'Wait time after reaching zero (hours)', f_cooldownMinutes: 'Wait time after reaching zero (minutes)', pointsHint: 'Each AI command (message, tool, delivered file) spends points. At zero, the person waits the time below. The owner has no limit.',
+      makeFolder: 'Creating folder {f}', makeCode: 'Creating code {f}', readf: 'Reading {f}', listf: 'Looking at the files', search: 'Searching: {f}', openUrl: 'Opening {f}', browse: 'Browsing {f}', useConn: 'Using {f}',
       p_issues: 'Open and comment on issues', p_pulls: 'Create and merge pull requests', p_run: 'Run code', mode_allow: 'Allow', mode_ask: 'Ask', mode_off: 'Block', allowAll: 'Allow all', askAll: 'Ask for all', blockAll: 'Block all',
       permsHint2: 'Ask: the AI stops and waits for you to tap Allow or Deny. Allow: it does it without asking. Block: it will not do it.', cat_game: 'Games', cat_tasks: 'Tasks and data',
       f_key: 'Key (API key)', f_universe: 'Universe ID (numbers only)', f_place: 'Place ID (optional)', f_robloxkey: 'Open Cloud key (API key)',
       askTitle: 'The AI wants to {a} on {c}', askAllow: 'Allow', askAlways: 'Always allow', askDeny: 'Deny', askSent: 'Answer sent.',
       edit: 'Edit photo', editPh: 'What to change in the photo? E.g. make the shirt blue', apply: 'Apply', editing: 'Editing the photo...', acct: 'Account', clearChats: 'Delete all chats', clearAsk: 'Delete ALL chats? This cannot be undone.',
       exportData: 'Download my data', delAccount: 'Delete my account', delAsk: 'Delete the account and everything in it? This cannot be undone.', done: 'Done.' },
-    es: { makeFolder: 'Creando carpeta {f}', makeCode: 'Creando código {f}', readf: 'Leyendo {f}', listf: 'Mirando los archivos', search: 'Buscando: {f}', openUrl: 'Abriendo {f}', browse: 'Navegando en {f}', useConn: 'Usando {f}',
+    es: { limHit: 'Límite de uso alcanzado', limPct: '{p}% del límite utilizado', limReset: 'Se reinicia {when}', limWait: 'Al llegar al límite, esperas {d}', upgrade: 'Mejorar plan', plansSoon: 'Los planes llegan pronto.', today: 'hoy', tomorrow: 'mañana', atTime: 'a las {h}', offT: 'IA fuera de línea', offS: 'Volvemos pronto. Inténtalo de nuevo en un rato.', eLimit: 'Llegaste al límite de uso.',
+      f_pointsTotal: 'Puntos por persona', f_pointsCost: 'Puntos que cuesta cada comando', f_cooldownHours: 'Tiempo de espera al llegar a cero (horas)', f_cooldownMinutes: 'Tiempo de espera al llegar a cero (minutos)', pointsHint: 'Cada comando de la IA (mensaje, herramienta, archivo entregado) gasta puntos. Al llegar a cero, la persona espera el tiempo de abajo. El dueño no tiene límite.',
+      makeFolder: 'Creando carpeta {f}', makeCode: 'Creando código {f}', readf: 'Leyendo {f}', listf: 'Mirando los archivos', search: 'Buscando: {f}', openUrl: 'Abriendo {f}', browse: 'Navegando en {f}', useConn: 'Usando {f}',
       p_issues: 'Abrir y comentar issues', p_pulls: 'Crear y unir pull requests', p_run: 'Ejecutar código', mode_allow: 'Permitir', mode_ask: 'Preguntar', mode_off: 'Bloquear', allowAll: 'Permitir todo', askAll: 'Preguntar todo', blockAll: 'Bloquear todo',
       permsHint2: 'Preguntar: la IA se detiene y espera que toques Permitir o Negar. Permitir: lo hace sin preguntar. Bloquear: no lo hace.', cat_game: 'Juegos', cat_tasks: 'Tareas y datos',
       f_key: 'Clave (API key)', f_universe: 'Universe ID (solo números)', f_place: 'Place ID (opcional)', f_robloxkey: 'Clave de Open Cloud (API key)',
@@ -263,7 +269,7 @@
 
   function enter() {
     $('hello').textContent = t('hello', { n: (user.name || '').split(' ')[0] });
-    cur = null; curProject = null; renderEmpty(); show('s-chat'); net(); refreshLists();
+    cur = null; curProject = null; renderEmpty(); show('s-chat'); net(); refreshLists(); loadUsage();
   }
   async function refreshLists() {
     try { data.chats = (await api('GET', '/api/chats')).chats; data.projects = (await api('GET', '/api/projects')).projects; } catch (e) {}
@@ -514,6 +520,7 @@
 
   function send() {
     var text = inp.value.trim(); if (!text && !pending.length) return;
+    if (U && U.locked && U.resetsAt > Date.now()) { uDismiss = -1; renderUsage(); toast(t('limHit')); return; }
     if (!cur) cur = { id: rid(), project_id: curProject };
     var atts = pending.slice(); pending = []; renderChips();
     inp.value = ''; inp.style.height = 'auto';
@@ -543,7 +550,7 @@
         method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
         body: JSON.stringify({ text: job.text, attachments: job.attachments, speed: job.speed, lang: L, project_id: job.projectId })
       });
-      if (!res.ok) { var j = {}; try { j = await res.json(); } catch (e) {} var er = new Error(j.error || ('HTTP ' + res.status)); er.code = j.code; if (res.status === 401) doLogout(true); throw er; }
+      if (!res.ok) { var j = {}; try { j = await res.json(); } catch (e) {} var er = new Error(j.error || ('HTTP ' + res.status)); er.code = j.code; if (j.resetsAt) { er.resetsAt = j.resetsAt; setUsage({ locked: true, pct: 100, resetsAt: j.resetsAt }); uDismiss = -1; renderUsage(); } if (res.status === 401) doLogout(true); throw er; }
       var reader = res.body.getReader(), dec = new TextDecoder(), buf = '';
       for (;;) {
         var chunk = await reader.read(); if (chunk.done) break; gotAny = true; rs.last = Date.now();
@@ -556,7 +563,8 @@
             else if (ev.type === 'ask') showAsk(ev, job.chatId);
             else if (ev.type === 'delta') { ensure(); text += ev.text; if (!raf) raf = requestAnimationFrame(draw); }
             else if (ev.type === 'present') { ensure()._p.appendChild(partCard(ev, job.chatId)); bottom(); }
-            else if (ev.type === 'error') toast(ev.message);
+            else if (ev.type === 'usage') setUsage({ pct: ev.pct, left: ev.left, total: ev.total, locked: ev.locked, resetsAt: ev.resetsAt });
+            else if (ev.type === 'error') { if (ev.code === 'offline') { uOnline = false; renderUsage(); ensure(); text = (text ? text + '\n\n' : '') + ev.message; fillText(am, text, false); } else toast(ev.message); }
             else if (ev.type === 'done') gotDone = true;
           });
         }
@@ -572,7 +580,7 @@
       else { var msg = (e instanceof TypeError || e.net) ? t('netErr') : errText(e); ensure(); if (!text) { text = msg; } fillText(am, text, false); toast(msg); }
     }
     st.remove(); abortCtl = null; if (!queue.length) setBusy(false); else flushQueue();
-    refreshLists();
+    refreshLists(); loadUsage();
   }
   /* Voltou para o app (ou a conexão caiu) com a IA ainda trabalhando: espera o servidor terminar e mostra o resultado. */
   var curRun = null;
@@ -612,6 +620,33 @@
     if (busy) { if (curRun) { curRun.stopped = true; if (token) api('POST', '/api/chats/' + curRun.chatId + '/stop', {}).catch(function () {}); } if (abortCtl) abortCtl.abort(); else if (queue.length) { queue = []; var w = $('st-wait'); if (w) w.remove(); setBusy(false); } }
     else send();
   };
+
+
+  /* ----- pontos de uso, aviso de limite e IA fora do ar ----- */
+  var U = null, uOnline = true, uDismiss = -1;
+  function dur(ms) { var m = Math.round(ms / 60000), h = Math.floor(m / 60); m = m % 60; return (h ? h + ' h' : '') + (h && m ? ' ' : '') + (m || !h ? m + ' min' : ''); }
+  function whenText(ts) {
+    var d = new Date(ts), n = new Date(), day;
+    var a = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime(), b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(), diff = Math.round((b - a) / 864e5);
+    if (diff === 0) day = t('today'); else if (diff === 1) day = t('tomorrow'); else { try { day = d.toLocaleDateString(L, { weekday: 'long' }); } catch (e) { day = ''; } }
+    var h; try { h = d.toLocaleTimeString(L, { hour: '2-digit', minute: '2-digit', hour12: L === 'en' }); } catch (e) { h = d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); }
+    return (day + ' ' + t('atTime', { h: h })).trim();
+  }
+  function renderUsage() {
+    $('offline').hidden = uOnline !== false;
+    var box = $('usage'); if (!U || U.unlimited) { box.hidden = true; return; }
+    var locked = U.locked && U.resetsAt > Date.now();
+    var show1 = locked || (U.pct >= 80 && U.pct > uDismiss);
+    box.hidden = !show1; if (!show1) return;
+    box.classList.toggle('full', locked);
+    $('u-t').textContent = locked ? t('limHit') : t('limPct', { p: U.pct });
+    $('u-s').textContent = locked ? t('limReset', { when: whenText(U.resetsAt) }) : (U.cooldownMs ? t('limWait', { d: dur(U.cooldownMs) }) : '');
+  }
+  function setUsage(o) { U = Object.assign(U || {}, o); if (o && o.online !== undefined) uOnline = o.online; renderUsage(); }
+  async function loadUsage() { if (!token) return; try { var r = await api('GET', '/api/usage'); uDismiss = -1; U = r; uOnline = r.online !== false; renderUsage(); } catch (e) {} }
+  $('u-x').onclick = function () { if (U) uDismiss = U.pct; if (U && U.locked) uDismiss = 101; $('usage').hidden = true; };
+  $('u-up').onclick = function () { toast(t('plansSoon')); };
+  setInterval(function () { if (!token) return; if (U && U.locked && U.resetsAt <= Date.now()) loadUsage(); else if (!document.hidden && !busy) loadUsage(); }, 60000);
 
   /* ================= gaveta ================= */
   function closeDrawer() { $('drawer').classList.remove('on'); $('scrim').classList.remove('on'); }
@@ -787,7 +822,7 @@
     var dl = el('datalist'); dl.id = 'ai-models'; models.forEach(function (m) { var o = el('option'); o.value = m; dl.appendChild(o); }); b.appendChild(dl);
     var inputs = {};
     GROUPS.forEach(function (g) {
-      b.appendChild(el('div', 'grp', t('g_' + g)));
+      b.appendChild(el('div', 'grp', t('g_' + g))); if (g === 'limits') b.appendChild(el('p', 'hint', t('pointsHint')));
       aiFields.filter(function (f) { return f.group === g; }).forEach(function (f) {
         var w = el('div', 'field'), lb = el('label', '', t('f_' + f.id)); lb.htmlFor = 'ai-' + f.id;
         var i;

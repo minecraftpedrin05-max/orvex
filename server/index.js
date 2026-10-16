@@ -14,6 +14,8 @@ const connectors = require('./connectors');
 const settings = require('./settings');
 const images = require('./images');
 const approvals = require('./approvals');
+const points = require('./points');
+const llm = require('./llm');
 
 const uid = () => crypto.randomBytes(6).toString('hex');
 const ID_RE = /^[a-z0-9]{6,32}$/;
@@ -63,6 +65,11 @@ on('GET', '/api/chats/:id', (ctx) => {
   H.json(ctx.res, 200, { chat, messages, running: active.has(chat.id), asks: approvals.pendingFor(chat.id) });
 });
 
+/* ---------- pontos de uso + se a IA está no ar ---------- */
+on('GET', '/api/usage', async (ctx) => {
+  H.json(ctx.res, 200, { ...points.state(ctx.user), online: await llm.online() });
+});
+
 on('POST', '/api/chats/:id/stop', (ctx) => {
   const chat = ownChat(ctx.user, ctx.params.id); const ac = active.get(chat.id); if (ac) ac.abort(); H.json(ctx.res, 200, { ok: true, was: !!ac });
 });
@@ -84,9 +91,8 @@ on('POST', '/api/chats/:id/send', async (ctx) => {
   if (chat && chat.user_id !== user.id) throw auth.fail(404, 'Chat não encontrado');
   if (active.has(params.id)) throw auth.fail(409, 'A IA ainda está respondendo neste chat.');
 
-  const day = new Date().toISOString().slice(0, 10);
-  const used = (q.one('SELECT n FROM usage WHERE user_id=? AND day=?', user.id, day) || { n: 0 }).n;
-  if (used >= cfg.dailyLimit) throw auth.fail(429, 'Você chegou no limite de mensagens de hoje.', 'limit');
+  const pst = points.state(user);
+  if (pst.locked) { const er = auth.fail(429, 'Você chegou no limite de uso.', 'limit'); er.extra = { resetsAt: pst.resetsAt }; throw er; }
 
   let project = null;
   if (!chat) {
@@ -95,7 +101,6 @@ on('POST', '/api/chats/:id/send', async (ctx) => {
     chat = q.one('SELECT * FROM chats WHERE id=?', params.id);
   } else if (chat.project_id) project = q.one('SELECT * FROM projects WHERE id=?', chat.project_id);
 
-  q.run('INSERT INTO usage(user_id,day,n) VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET n=n+1', user.id, day);
   q.run('INSERT INTO messages(chat_id,role,text,parts,ts) VALUES(?,?,?,?,?)', chat.id, 'user', text, attachments.length ? JSON.stringify(attachments.map((id) => {
     const u = q.one('SELECT id,name,mime FROM uploads WHERE id=? AND user_id=?', id, user.id); return u ? { kind: 'attachment', id: u.id, name: u.name, mime: u.mime } : null;
   }).filter(Boolean)) : null, Date.now());
@@ -383,7 +388,7 @@ const server = http.createServer(async (req, res) => {
   } catch (e) {
     const status = e.status || 500; if (status >= 500) console.error('[erro]', e);
     if (res.headersSent) return res.end();
-    H.json(res, status, { error: status >= 500 ? 'Erro interno' : e.message, code: e.code });
+    H.json(res, status, { error: status >= 500 ? 'Erro interno' : e.message, code: e.code, ...(e.extra || {}) });
   }
 });
 server.requestTimeout = 0; server.headersTimeout = 30000;

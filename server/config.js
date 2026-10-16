@@ -72,7 +72,7 @@ module.exports = {
     baseUrl: env('IMAGE_BASE_URL', ''),
     api: env('IMAGE_API', 'a1111'),
     model: env('IMAGE_MODEL', ''),
-    size: num('IMAGE_SIZE', 512),
+    size: num('IMAGE_SIZE', 1024),
     steps: num('IMAGE_STEPS', 4),
     cfg: num('IMAGE_CFG', 1),
     dailyLimit: num('IMAGE_DAILY_LIMIT', 10),
@@ -91,6 +91,11 @@ module.exports = {
   simpleFiles: env('SIMPLE_FILES', '1') !== '0',
 
   dailyLimit: num('DAILY_LIMIT', 200),
+  // Pontos: cada comando da IA (mensagem, ferramenta, arquivo entregue) custa pontos. Ao zerar, espera o tempo de espera.
+  pointsTotal: num('POINTS_TOTAL', 100),
+  pointsCost: num('POINTS_COST', 0.5),
+  cooldownHours: num('COOLDOWN_HOURS', 3),
+  cooldownMinutes: num('COOLDOWN_MINUTES', 20),
   maxUploadMB: num('MAX_UPLOAD_MB', 25),
   corsOrigin: env('CORS_ORIGIN', '*'),
 };

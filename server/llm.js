@@ -26,8 +26,8 @@ async function chat({ speed, model, messages, tools, signal, onDelta }) {
   if (cfg.modelKey) headers.Authorization = 'Bearer ' + cfg.modelKey;
   let r;
   try { r = await fetch(cfg.modelBase.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers, body: JSON.stringify(body), signal }); }
-  catch (e) { if (signal && signal.aborted) throw e; throw new Error('Não consegui falar com o modelo (' + cfg.modelBase + '). Ele está ligado?'); }
-  if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error(`Modelo respondeu ${r.status}: ${t.slice(0, 200)}`); }
+  catch (e) { if (signal && signal.aborted) throw e; throw offline('Não consegui falar com o modelo (' + cfg.modelBase + '). Ele está ligado?'); }
+  if (!r.ok) { const t = await r.text().catch(() => ''); if (r.status === 401 || r.status === 403 || r.status === 502 || r.status === 503 || r.status === 504) throw offline(`Modelo respondeu ${r.status}: ${t.slice(0, 200)}`); throw new Error(`Modelo respondeu ${r.status}: ${t.slice(0, 200)}`); }
 
   let text = ''; let emitted = 0; const calls = {}; let buf = '';
   const flush = (final) => {
@@ -127,4 +127,19 @@ async function mockChat({ speed, model, messages, tools, onDelta }) {
   await say(t); return { text: t, toolCalls: [] };
 }
 
-module.exports = { chat, describeImages, visionAsk };
+const offline = (m) => Object.assign(new Error(m), { code: 'offline' });
+let onlineCache = { at: 0, ok: true };
+/** A IA está no ar? Confere o servidor de modelos (guarda a resposta por 15 s). */
+async function online() {
+  if (cfg.provider === 'mock') return true;
+  if (Date.now() - onlineCache.at < 15e3) return onlineCache.ok;
+  let ok = false;
+  try {
+    const h = {}; if (cfg.modelKey) h.Authorization = 'Bearer ' + cfg.modelKey;
+    const r = await fetch(cfg.modelBase.replace(/\/$/, '') + '/models', { headers: h, signal: AbortSignal.timeout(4000) });
+    ok = r.ok;
+  } catch { ok = false; }
+  onlineCache = { at: Date.now(), ok }; return ok;
+}
+
+module.exports = { chat, describeImages, visionAsk, online };

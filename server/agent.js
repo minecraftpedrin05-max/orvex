@@ -174,8 +174,19 @@ function topEntries(ws) {
   return m;
 }
 
+const OFFLINE_NOTE = { pt: 'A IA está fora do ar agora. Volte daqui a pouco.', en: 'The AI is offline right now. Please come back soon.', es: 'La IA está fuera de línea ahora. Vuelve en un rato.' };
+const LIMIT_NOTE = { pt: 'Cheguei no limite de uso por agora. Volto a trabalhar quando o tempo de espera acabar.', en: 'I reached the usage limit for now. I will be back when the wait is over.', es: 'Llegué al límite de uso por ahora. Vuelvo cuando termine la espera.' };
+
 async function run({ user, chat, project, text, attachments, speed, lang, emit, signal }) {
   speed = MAX_STEPS[speed] ? speed : 'mid';
+  const points = require('./points'); let limitHit = false;
+  const spend = () => { const st = points.charge(user); emit({ type: 'usage', pct: st.pct, left: st.left, total: st.total, locked: st.locked, resetsAt: st.resetsAt }); return st; };
+  // Cada comando custa pontos: a mensagem da IA, cada ferramenta e cada arquivo entregue.
+  spend();
+  const exec = async (name, args) => {
+    if (points.blocked(user)) { limitHit = true; return 'LIMITE: os pontos de uso acabaram. Pare agora e avise o usuário em uma frase.'; }
+    const out = await tools.execTool(name, args, ctx); spend(); return out;
+  };
   const ws = tools.wsDir(user.id, chat);
   const before = topEntries(ws);
   const presented = []; const presentedSet = new Set();
@@ -187,7 +198,7 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
       const full = path.join(ws, rel); let isDir = false; try { isDir = fs.statSync(full).isDirectory(); } catch { return; }
       const kind = extra && extra.screenshot ? 'image' : isDir ? 'folder' : /\.(png|jpe?g|gif|webp|svg)$/i.test(rel) ? 'image' : 'file';
       const part = { kind, path: rel, name: path.basename(rel) };
-      presented.push(part); emit({ type: 'present', ...part });
+      presented.push(part); emit({ type: 'present', ...part }); spend();
     },
   };
 
@@ -210,7 +221,7 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
   try {
     emit({ type: 'status', key: 'think' });
     for (let step = 0; step < (simple ? 1 : MAX_STEPS[speed]); step++) {
-      if (signal.aborted) break;
+      if (signal.aborted || limitHit) break;
       const len0 = full.length;
       const res = await llm.chat({ speed, model, messages, tools: toolDefs, signal, onDelta });
       if (!res.toolCalls.length) {
@@ -228,12 +239,15 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
       for (const c of res.toolCalls) {
         if (signal.aborted) break;
         if (c.name === 'write_file') wrote = true; if (c.name === 'run_command') ran = true;
-        const out = await tools.execTool(c.name, c.args, ctx);
+        const out = await exec(c.name, c.args);
         messages.push({ role: 'tool', tool_call_id: c.id, name: c.name, content: String(out) });
       }
     }
   } catch (e) {
-    if (!signal.aborted) { emit({ type: 'error', message: e.message || String(e) }); if (!full) full = '(erro) ' + (e.message || ''); }
+    if (!signal.aborted) {
+      if (e && e.code === 'offline') { emit({ type: 'error', code: 'offline', message: OFFLINE_NOTE[String(lang || 'pt').slice(0, 2)] || OFFLINE_NOTE.pt }); console.error('[modelo fora do ar]', e.message); }
+      else { emit({ type: 'error', message: e.message || String(e) }); if (!full) full = '(erro) ' + (e.message || ''); }
+    }
   }
 
   // Modo simples: o modelo escreveu os arquivos em blocos de texto em vez de chamar a ferramenta.
@@ -243,7 +257,7 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
       const loose = looseFiles(full);
       if (loose.length) { const dir = 'projeto-' + Date.now().toString(36).slice(-4); files = loose.map((f) => ({ path: dir + '/' + f.path, content: f.content })); }
     }
-    for (const f of files) { try { await tools.execTool('write_file', { path: f.path, content: f.content }, ctx); wrote = true; } catch (e) { emit({ type: 'error', message: e.message }); } }
+    for (const f of files) { try { await exec('write_file', { path: f.path, content: f.content }); wrote = true; } catch (e) { emit({ type: 'error', message: e.message }); } }
   }
 
   // Se criou coisas e não entregou nenhuma, entrega automaticamente as novas pastas/arquivos.
@@ -252,6 +266,7 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
     for (const [name, mt] of Object.entries(after)) if (before[name] === undefined || mt > before[name]) ctx.present(name);
   }
 
+  if (limitHit) { const note = LIMIT_NOTE[String(lang || 'pt').slice(0, 2)] || LIMIT_NOTE.pt; full = (full.trim() + '\n\n' + note).trim(); emit({ type: 'delta', text: '\n\n' + note }); }
   full = full.trim();
   if (full || presented.length) {
     q.run('INSERT INTO messages(chat_id,role,text,parts,ts) VALUES(?,?,?,?,?)', chat.id, 'assistant', full, presented.length ? JSON.stringify(presented) : null, Date.now());

@@ -245,6 +245,30 @@ const { server } = require('../server/index.js');
   assert.equal((await api('POST', '/api/admin/settings', { exec: 'rm -rf' })).status, 400); assert.equal((await api('POST', '/api/admin/settings', { m_fast: 'a b' })).status, 400); assert.equal((await api('POST', '/api/admin/settings', { i_url: 'file:///etc' })).status, 400); assert.equal((await api('POST', '/api/admin/settings', { i_size: 99999 })).status, 400); ok('valores inválidos são recusados');
   await api('POST', '/api/admin/settings/reset', {}); assert.equal(cfgMod.exec, execPrev); assert.equal(cfgMod.modelKey, ''); ok('voltar ao padrão');
 
+  /* ---------- pontos de uso, tempo de espera e IA fora do ar ---------- */
+  {
+    const pts = { total: cfgMod.pointsTotal, cost: cfgMod.pointsCost, h: cfgMod.cooldownHours, m: cfgMod.cooldownMinutes };
+    cfgMod.pointsTotal = 1; cfgMod.pointsCost = 0.5; cfgMod.cooldownHours = 3; cfgMod.cooldownMinutes = 20;
+    const sendO = (id, body) => fetch(base + '/api/chats/' + id + '/send', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + o.token }, body: JSON.stringify(body) });
+    const useO = async () => (await (await fetch(base + '/api/usage', { headers: { Authorization: 'Bearer ' + o.token } })).json());
+    let u0 = await useO(); assert.equal(u0.pct, 0); assert.equal(u0.locked, false); assert.equal(u0.online, true);
+    let rr = await sendO('pts00001', { text: 'oi', speed: 'fast' }); const evs = (await rr.text()).split('\n').filter((l) => l.startsWith('data: ')).map((l) => JSON.parse(l.slice(6)));
+    assert(evs.some((e) => e.type === 'usage' && e.pct === 50)); assert.equal((await useO()).pct, 50); ok('cada comando gasta 0,5 ponto (50% de 1 ponto)');
+    await (await sendO('pts00002', { text: 'oi de novo', speed: 'fast' })).text();
+    const u2 = await useO(); assert.equal(u2.pct, 100); assert.equal(u2.locked, true);
+    const wait = u2.resetsAt - Date.now(); assert(wait > 3 * 3600e3 + 19 * 60e3 && wait <= 3 * 3600e3 + 20 * 60e3 + 1000, String(wait)); ok('limite atingido: espera de 3 h 20 min');
+    rr = await sendO('pts00003', { text: 'oi', speed: 'fast' }); const jb = await rr.json(); assert.equal(rr.status, 429); assert.equal(jb.code, 'limit'); assert(jb.resetsAt > Date.now()); ok('travado: não deixa mandar e avisa a hora que volta');
+    dbx.q.run('UPDATE points SET locked_until=? WHERE user_id=(SELECT id FROM users WHERE email=?)', Date.now() - 1000, 'outro@exemplo.com');
+    const u3 = await useO(); assert.equal(u3.pct, 0); assert.equal(u3.locked, false); ok('acabou a espera: os pontos voltam');
+    const adm = await (await fetch(base + '/api/usage', { headers: { Authorization: 'Bearer ' + token } })).json(); assert.equal(adm.unlimited, true); ok('dono não tem limite de pontos');
+    cfgMod.pointsTotal = pts.total; cfgMod.pointsCost = pts.cost; cfgMod.cooldownHours = pts.h; cfgMod.cooldownMinutes = pts.m;
+    // IA fora do ar: mensagem amigável, sem mostrar o endereço
+    const llmMod = require('../server/llm'); const prov = cfgMod.provider; cfgMod.provider = 'ollama'; const mb = cfgMod.modelBase; cfgMod.modelBase = 'http://127.0.0.1:9/v1';
+    const off = await (await sendO('pts00004', { text: 'oi', speed: 'fast', lang: 'pt' })).text(); const oe = off.split('\n').filter((l) => l.startsWith('data: ')).map((l) => JSON.parse(l.slice(6))).find((e) => e.type === 'error');
+    assert(oe && oe.code === 'offline' && /fora do ar/.test(oe.message) && !/127\.0\.0\.1/.test(oe.message)); ok('IA fora do ar mostra mensagem amigável');
+    cfgMod.provider = prov; cfgMod.modelBase = mb;
+  }
+
   assert((await fetch(base + '/')).status === 200);
   console.log('\nTudo certo.'); server.close(); process.exit(0);
 })().catch((e) => { console.error('FALHOU:', e); process.exit(1); });
