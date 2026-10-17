@@ -65,6 +65,18 @@ on('GET', '/api/chats/:id', (ctx) => {
   H.json(ctx.res, 200, { chat, messages, running: active.has(chat.id), asks: approvals.pendingFor(chat.id) });
 });
 
+/* editar uma mensagem do usuário: apaga ela e tudo que veio depois (a pessoa reenvia a versão nova) */
+on('POST', '/api/chats/:id/truncate', async (ctx) => {
+  const chat = ownChat(ctx.user, ctx.params.id);
+  if (active.has(chat.id)) throw auth.fail(409, 'A IA ainda está respondendo.', 'busy');
+  const b = await H.readJson(ctx.req); const k = Number(b.userIndex);
+  if (!Number.isInteger(k) || k < 0) throw auth.fail(400, 'Mensagem inválida.');
+  const m = q.all("SELECT id FROM messages WHERE chat_id=? AND role='user' ORDER BY id", chat.id)[k];
+  if (!m) throw auth.fail(404, 'Mensagem não encontrada.');
+  q.run('DELETE FROM messages WHERE chat_id=? AND id>=?', chat.id, m.id);
+  H.json(ctx.res, 200, { ok: true });
+});
+
 /* ---------- pontos de uso + se a IA está no ar ---------- */
 on('GET', '/api/usage', async (ctx) => {
   H.json(ctx.res, 200, { ...points.state(ctx.user), online: await llm.online() });

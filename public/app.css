@@ -213,3 +213,12 @@ body{padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
 .usage .ux{flex:none;width:36px;height:36px;border:0;background:none;color:var(--muted);display:grid;place-items:center}
 .usage .ux svg{width:20px;height:20px}
 .usage.full{border-color:var(--fg)}
+
+.bub.me,.amsg .bub{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.bub.sel{-webkit-user-select:text;user-select:text}
+.mmenu{position:fixed;z-index:80;min-width:230px;background:var(--soft);color:var(--fg);border:1px solid var(--line,#333);border-radius:16px;padding:6px;box-shadow:0 10px 30px rgba(0,0,0,.45);display:flex;flex-direction:column}
+.mmenu .mtime{padding:10px 14px;font-size:.85em;opacity:.55}
+.mmenu button{display:flex;align-items:center;gap:14px;padding:13px 14px;background:none;border:0;color:inherit;font:inherit;font-size:1.02em;text-align:left;border-radius:10px;cursor:pointer}
+.mmenu button:active,.mmenu button:hover{background:rgba(127,127,127,.15)}
+.mmenu button svg{width:20px;height:20px;flex:none;opacity:.8}
+.sel,.sel *{-webkit-user-select:text!important;user-select:text!important}

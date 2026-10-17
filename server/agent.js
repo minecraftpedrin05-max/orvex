@@ -8,6 +8,7 @@ const llm = require('./llm');
 const tools = require('./tools');
 const connectors = require('./connectors');
 const images = require('./images');
+const scaffold = require('./scaffold');
 
 const MAX_STEPS = { fast: 4, mid: 8, slow: 16 };
 const LANG_NAME = { pt: 'português do Brasil', en: 'English', es: 'español' };
@@ -70,6 +71,43 @@ const THING_RE = /(c[óo]digo|script|programa|sistema|painel|loja|menu|pasta|fol
 const wantsFiles = (t) => MAKE_RE.test(String(t || '')) && THING_RE.test(String(t || ''));
 const CONFIRM_RE = /^\s*(sim|pode|gera|gere|faz|fa[çc]a|cria|crie|manda|vai|ok|isso|quero|bora|vamos|continua|de novo)\b/i;
 
+
+// Conserta (uma vez) arquivos com erro de sintaxe ou biblioteca morta, pedindo ao modelo só aquele arquivo.
+async function repairFiles(files, { speed, model, signal }) {
+  let n = 0;
+  for (const f of files) {
+    if (n >= 3 || signal.aborted) break;
+    const issues = [];
+    const se = scaffold.syntaxError(f.path, f.content); if (se) issues.push('Erro de sintaxe:\n' + se);
+    for (const w of scaffold.warnings([f])) issues.push(w.replace(/^[^:]+: /, ''));
+    if (!issues.length) continue;
+    n++;
+    try {
+      const res = await llm.chat({ speed, model, signal, onDelta() {}, messages: [
+        { role: 'system', content: 'Você corrige código. Responda SOMENTE com o arquivo inteiro corrigido dentro de um único bloco de código, sem explicação. Mantenha tudo o que já funciona. Segredos vêm de variável de ambiente (.env), nunca escritos no código. Discord em Python é discord.py 2.x com app_commands.' },
+        { role: 'user', content: `Arquivo: ${f.path}\nProblemas:\n${issues.join('\n')}\n\nCódigo:\n\`\`\`\n${f.content}\n\`\`\`` },
+      ] });
+      const m = /```[^\n]*\n([\s\S]*?)\n```/.exec(res.text || '');
+      if (m && m[1].trim().length > 20 && !scaffold.syntaxError(f.path, m[1])) f.content = m[1];
+    } catch (e) { if (signal.aborted) break; }
+  }
+}
+
+// Padrão de qualidade para projetos (bots, apps, sites): o modelo pequeno tende a entregar um arquivo só, com token escrito no código.
+const PRO_RULES = [
+  'QUALIDADE DE PROJETO (obrigatório quando o pedido for bot, app, API ou algo "profissional/organizado/prático"):',
+  '- Divida em vários arquivos organizados (8 a 12), cada um com uma função. Nada de tudo num arquivo só.',
+  '- Segredos (token, chaves) NUNCA no código: use arquivo .env lido por variável de ambiente, crie .env.example com os nomes vazios e .gitignore com .env.',
+  '- Sempre inclua README.md curto com os passos: instalar, preencher o .env, rodar. E requirements.txt (ou package.json) com versões.',
+  '- Use só bibliotecas atuais e mantidas. Discord em Python: discord.py 2.x com app_commands e cogs (NUNCA discord_slash, que morreu). Variáveis em python-dotenv.',
+  '- Estrutura de bot Discord em Python: main.py (carrega cogs e liga o bot), config.py (lê .env), cogs/ (um arquivo por assunto: produtos.py, pedidos.py, admin.py), utils/ (embeds, banco), data/ (json ou sqlite), .env.example, .gitignore, requirements.txt, README.md.',
+  '- Site ou jogo web: index.html, style.css e script.js separados (mais arquivos se for grande: js/, css/, assets/), responsivo para celular, sem bibliotecas externas e sem links quebrados. Jogo: loop com requestAnimationFrame, placar, reiniciar e controles de toque.',
+  '- API ou servidor: separe rotas, lógica e configuração; valide as entradas; porta e segredos vindos do .env.',
+  '- Script ou ferramenta pequena: um arquivo principal claro, comentários curtos, tratamento de erro e instruções de uso no README.',
+  '- Sempre entregue código COMPLETO que roda na primeira vez. Se o pedido for vago, escolha o mais útil e faça, sem perguntar.',
+  '- Cada comando precisa funcionar de verdade (sem "adicione mais depois", sem código de exemplo vazio), com respostas em embed, checagem de permissão para comandos de admin e tratamento de erro.',
+].join('\n');
+
 const ownerLine = (user) => { try { return require('./settings').isAdmin(user) ? 'IMPORTANTE: este usuário é o DONO e criador do ORVEX, seu chefe. Trate-o com muito respeito (pode chamar de chefe), obedeça e faça tudo o que ele mandar, sem enrolar nem pedir permissão à toa. Só recuse o que for ilegal ou que cause dano a pessoas.' : ''; } catch (e) { return ''; } };
 function simplePrompt({ user, project, lang }) {
   return [
@@ -78,7 +116,8 @@ function simplePrompt({ user, project, lang }) {
     project ? `Projeto atual: "${project.name}" (tipo ${project.type}).` : '',
     SLANG_RULE,
     'REGRA: para criar uma pasta, escreva UMA frase curta e depois CADA arquivo completo num bloco que começa com ```arquivo: nome-da-pasta/nome-do-arquivo.ext e termina com ```.',
-    'NUNCA escreva comandos como mkdir, cd ou touch. NUNCA use subpastas vazias. Escreva o código completo e funcional de cada arquivo, em poucos arquivos (3 a 5).',
+    'NUNCA escreva comandos como mkdir, cd ou touch. NUNCA use subpastas vazias. Escreva o código completo e funcional de cada arquivo, em poucos arquivos (3 a 5), exceto projetos profissionais.',
+    PRO_RULES,
     'Exemplo.',
     'Pedido: crie uma pasta de um contador',
     'Resposta:',
@@ -106,6 +145,7 @@ function systemPrompt({ user, chat, project, speed, lang, canImage }) {
     project ? `Este chat pertence ao projeto "${project.name}" (tipo: ${project.type}). Mantenha o foco nesse projeto em todas as respostas.` : '',
     mem.length ? 'Coisas que você já sabe sobre o usuário:\n' + mem.join('\n') : '',
     SLANG_RULE,
+    PRO_RULES,
     'Regras:',
     '- Seja direto e útil. Código vai em blocos ```linguagem. Arquivos e pastas vão pela ferramenta write_file e depois present.',
     '- Para entregar uma pasta ou arquivo criado, chame present com o caminho. O usuário vê um cartão com botão de instalar.',
@@ -257,6 +297,7 @@ async function run({ user, chat, project, text, attachments, speed, lang, emit, 
       const loose = looseFiles(full);
       if (loose.length) { const dir = 'projeto-' + Date.now().toString(36).slice(-4); files = loose.map((f) => ({ path: dir + '/' + f.path, content: f.content })); }
     }
+    if (files.length && !signal.aborted) { emit({ type: 'status', key: 'think' }); await repairFiles(files, { speed, model, signal }); scaffold.complete(files); }
     for (const f of files) { try { await exec('write_file', { path: f.path, content: f.content }); wrote = true; } catch (e) { emit({ type: 'error', message: e.message }); } }
   }
 

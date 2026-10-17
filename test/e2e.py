@@ -38,6 +38,7 @@ with sync_playwright() as p:
     pg.fill('#inp', 'crie uma pasta com um site'); pg.click('#b-send')
     pg.wait_for_selector('.folder', timeout=15000); pg.wait_for_selector('.status', state='detached', timeout=15000)
     assert 'meu-site' in pg.inner_text('.folder'); ok('cartão de pasta com botão instalar')
+
     pg.click('.folder .fhead .icon'); pg.wait_for_selector('.trow'); assert 'index.html' in pg.inner_text('.ftree'); ok('seta mostra os arquivos')
     pg.screenshot(path=OUT + '/5-folder-dark.png')
     pg.locator('.trow button').first.click(); pg.wait_for_selector('#viewer.on pre'); assert 'ORVEX' in pg.inner_text('#v-body') or 'console' in pg.inner_text('#v-body'); ok('olho abre o conteúdo do arquivo')
@@ -113,6 +114,15 @@ with sync_playwright() as p:
     pg.context.set_offline(True); pg.wait_for_timeout(300); assert pg.locator('#net.on').count() == 1; ok('aviso de sem Wi-Fi')
     pg.fill('#inp', 'mensagem offline'); pg.click('#b-send'); pg.wait_for_selector('#st-wait'); pg.screenshot(path=OUT + '/12-offline-dark.png')
     pg.context.set_offline(False); pg.wait_for_selector('#st-wait', state='detached', timeout=15000); pg.wait_for_selector('.amsg .bub', timeout=15000); ok('responde quando o Wi-Fi volta')
+
+    # menu ao segurar a mensagem: hora, copiar, selecionar, editar
+    pg.wait_for_selector('#ic-stop', state='hidden', timeout=15000)
+    pg.locator('.bub.me', has_text='mensagem offline').first.click(button='right')
+    pg.wait_for_selector('.mmenu'); mt = pg.inner_text('.mmenu')
+    assert 'Copiar mensagem' in mt and 'Selecionar texto' in mt and 'Editar' in mt and re.search(r'\d\d:\d\d', mt); ok('menu da mensagem')
+    pg.screenshot(path=OUT + '/menu-msg.png')
+    pg.click('.mmenu >> text=Editar'); expect(pg.locator('#inp')).to_have_value(re.compile('mensagem offline'))
+    assert pg.locator('.bub.me', has_text='mensagem offline').count() == 0; ok('editar volta o texto e apaga a conversa dali em diante')
     b.close()
 print('ERROS NO NAVEGADOR:' if errors else 'sem erros no console', *errors, sep='\n' if errors else ' ')
 sys.exit(1 if errors else 0)

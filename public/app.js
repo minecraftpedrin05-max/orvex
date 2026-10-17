@@ -18,7 +18,7 @@
       photo: 'Foto', video: 'Vídeo', file: 'Arquivo', camera: 'Câmera', newChat: 'Novo chat', projects: 'Projetos', codes: 'Códigos', settings: 'Configurações', logout: 'Sair da conta',
       chats: 'Chats', noChats: 'Nenhum chat ainda.', untitled: 'Novo chat',
       think: 'Pensando', work: 'Trabalhando', make: 'Fazendo {f}', run: 'Executando comando', waiting: 'Esperando o Wi-Fi voltar',
-      copy: 'Copiar', share: 'Compartilhar', save: 'Salvar código', copied: 'Copiado', saved: 'Salvo',
+      copy: 'Copiar', msgCopy: 'Copiar mensagem', msgSel: 'Selecionar texto', msgEdit: 'Editar', share: 'Compartilhar', save: 'Salvar código', copied: 'Copiado', saved: 'Salvo',
       offline: 'Sem Wi-Fi. Vou responder quando a conexão voltar.', weak: 'Wi-Fi fraco. Vou responder mais devagar.',
       menu: 'Menu', attach: 'Anexar', mic: 'Falar', send: 'Enviar', stop: 'Parar', listening: 'Ouvindo...', back2: 'Voltar', remove: 'Remover', close: 'Fechar',
       projName: 'Nome do projeto', projType: 'Tipo do projeto', create: 'Criar projeto', newProject: 'Novo projeto', eProj: 'Digite o nome do projeto.', noProj: 'Nenhum projeto ainda. Toque no + para criar.', noProjChats: 'Nenhum chat neste projeto.',
@@ -43,7 +43,7 @@
       photo: 'Photo', video: 'Video', file: 'File', camera: 'Camera', newChat: 'New chat', projects: 'Projects', codes: 'Code', settings: 'Settings', logout: 'Sign out',
       chats: 'Chats', noChats: 'No chats yet.', untitled: 'New chat',
       think: 'Thinking', work: 'Working', make: 'Making {f}', run: 'Running command', waiting: 'Waiting for Wi-Fi to come back',
-      copy: 'Copy', share: 'Share', save: 'Save code', copied: 'Copied', saved: 'Saved',
+      copy: 'Copy', msgCopy: 'Copy message', msgSel: 'Select text', msgEdit: 'Edit', share: 'Share', save: 'Save code', copied: 'Copied', saved: 'Saved',
       offline: 'No Wi-Fi. I will reply when the connection is back.', weak: 'Weak Wi-Fi. I will reply more slowly.',
       menu: 'Menu', attach: 'Attach', mic: 'Speak', send: 'Send', stop: 'Stop', listening: 'Listening...', back2: 'Back', remove: 'Remove', close: 'Close',
       projName: 'Project name', projType: 'Project type', create: 'Create project', newProject: 'New project', eProj: 'Enter the project name.', noProj: 'No projects yet. Tap + to create one.', noProjChats: 'No chats in this project.',
@@ -68,7 +68,7 @@
       photo: 'Foto', video: 'Video', file: 'Archivo', camera: 'Cámara', newChat: 'Nuevo chat', projects: 'Proyectos', codes: 'Código', settings: 'Configuración', logout: 'Cerrar sesión',
       chats: 'Chats', noChats: 'Aún no hay chats.', untitled: 'Nuevo chat',
       think: 'Pensando', work: 'Trabajando', make: 'Creando {f}', run: 'Ejecutando comando', waiting: 'Esperando que vuelva el Wi-Fi',
-      copy: 'Copiar', share: 'Compartir', save: 'Guardar código', copied: 'Copiado', saved: 'Guardado',
+      copy: 'Copiar', msgCopy: 'Copiar mensaje', msgSel: 'Seleccionar texto', msgEdit: 'Editar', share: 'Compartir', save: 'Guardar código', copied: 'Copiado', saved: 'Guardado',
       offline: 'Sin Wi-Fi. Responderé cuando vuelva la conexión.', weak: 'Wi-Fi débil. Responderé más despacio.',
       menu: 'Menú', attach: 'Adjuntar', mic: 'Hablar', send: 'Enviar', stop: 'Detener', listening: 'Escuchando...', back2: 'Atrás', remove: 'Quitar', close: 'Cerrar',
       projName: 'Nombre del proyecto', projType: 'Tipo de proyecto', create: 'Crear proyecto', newProject: 'Nuevo proyecto', eProj: 'Escribe el nombre del proyecto.', noProj: 'Aún no hay proyectos. Toca + para crear uno.', noProjChats: 'No hay chats en este proyecto.',
@@ -130,6 +130,8 @@
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
   var SV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
   var I = {
+    sel: SV + '<path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2M8 9h8M8 13h5"/></svg>',
+    edit: SV + '<path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4"/></svg>',
     copy: SV + '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg>',
     check: SV + '<path d="M5 12l5 5 9-10"/></svg>',
     share: SV + '<path d="M12 16V4M7 9l5-5 5 5M5 14v4a2 2 0 002 2h10a2 2 0 002-2v-4"/></svg>',
@@ -395,7 +397,7 @@
     box.appendChild(bar); box.appendChild(pre); return box;
   }
   function fillText(am, text, stream) {
-    am._t.innerHTML = '';
+    am._raw = text; am._t.innerHTML = '';
     parseBlocks(text).forEach(function (b, idx, arr) {
       if (b.k === 't') { if (!b.x.trim()) return; var d = el('div', 'bub ai'); inline(d, b.x.trim()); am._t.appendChild(d); }
       else am._t.appendChild(codeBox(b.x, b.l, stream && idx === arr.length - 1));
@@ -403,12 +405,47 @@
   }
   function newAssistant() { var am = el('div', 'amsg'); am._t = el('div'); am._t.style.cssText = 'display:flex;flex-direction:column;gap:8px'; am._p = el('div'); am._p.style.cssText = 'display:flex;flex-direction:column;gap:8px'; am.appendChild(am._t); am.appendChild(am._p); return am; }
 
-  function addUser(text, atts) {
-    $('empty').hidden = true;
-    if (text) msgs.appendChild(el('div', 'bub me', text));
-    if (atts && atts.length) { var a = el('div', 'att'); atts.forEach(function (x) { var th = thumb(x); if (th && /^image\//.test(x.mime || '')) { th.style.cursor = 'zoom-in'; th.onclick = function () { if (th.src) openLightbox(th.src, { chatId: cur && cur.id, upload: x.id, name: x.name }); }; } a.appendChild(th || el('span', '', x.name)); }); msgs.appendChild(a); }
+  function addUser(text, atts, ts) {
+    $('empty').hidden = true; var first = null;
+    if (text) { var b = el('div', 'bub me um', text); b._raw = text; b._ts = ts || Date.now(); first = b; msgs.appendChild(b); }
+    if (atts && atts.length) { var a = el('div', 'att'); atts.forEach(function (x) { var th = thumb(x); if (th && /^image\//.test(x.mime || '')) { th.style.cursor = 'zoom-in'; th.onclick = function () { if (th.src) openLightbox(th.src, { chatId: cur && cur.id, upload: x.id, name: x.name }); }; } a.appendChild(th || el('span', '', x.name)); }); if (!first) { a.classList.add('um'); a._raw = ''; a._ts = ts || Date.now(); } msgs.appendChild(a); }
     bottom();
   }
+
+  /* ----- menu ao segurar uma mensagem: hora, copiar, selecionar, editar ----- */
+  var mmenu = null;
+  function closeMenu() { if (mmenu) { mmenu.remove(); mmenu = null; } }
+  function fmtTime(ts) { var d = new Date(ts || Date.now()); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function selectNode(node) { node.classList.add('sel'); var r = document.createRange(); r.selectNodeContents(node); var sl = window.getSelection(); sl.removeAllRanges(); sl.addRange(r); }
+  function openMenu(node, x, y) {
+    closeMenu(); var raw = node._raw || ''; var isUser = node.classList.contains('um');
+    var m = el('div', 'mmenu'); m.appendChild(el('div', 'mtime', fmtTime(node._ts)));
+    function item(icon, label, fn) { var b = el('button', ''); b.innerHTML = icon; b.appendChild(el('span', '', label)); b.onclick = function () { closeMenu(); fn(); }; m.appendChild(b); }
+    if (raw) item(I.copy, t('msgCopy'), function () { copyText(raw, null, null); toast(t('copied')); });
+    if (raw) item(I.sel || I.copy, t('msgSel'), function () { selectNode(node.classList.contains('amsg') ? node._t : node); });
+    if (isUser && raw && !busy) item(I.edit || I.copy, t('msgEdit'), function () { editMsg(node); });
+    if (!m.children[1]) return;
+    document.body.appendChild(m); mmenu = m;
+    var w = m.offsetWidth, h = m.offsetHeight; var left = Math.max(8, Math.min(x - w / 2, window.innerWidth - w - 8)); var top = y + 12; if (top + h > window.innerHeight - 8) top = Math.max(8, y - h - 12);
+    m.style.left = left + 'px'; m.style.top = top + 'px';
+  }
+  async function editMsg(node) {
+    if (!cur || busy) return; var all = Array.prototype.slice.call(msgs.querySelectorAll('.um')); var k = all.indexOf(node); if (k < 0) return;
+    try { await api('POST', '/api/chats/' + cur.id + '/truncate', { userIndex: k }); } catch (e) { toast(errText(e)); return; }
+    var kids = Array.prototype.slice.call(msgs.children); var from = kids.indexOf(node); kids.slice(from).forEach(function (n) { n.remove(); });
+    $('empty').hidden = !!msgs.children.length; inp.value = node._raw; inp.dispatchEvent(new Event('input')); inp.focus();
+  }
+  (function () {
+    var timer = 0, sx = 0, sy = 0, target = null;
+    function find(e) { var n = e.target && e.target.closest ? e.target.closest('.bub.me, .amsg') : null; if (!n || !msgs.contains(n)) return null; if (n.classList.contains('amsg') && e.target.closest('.code, pre, button, a, .card')) return null; return n; }
+    function nodeFor(n) { return n; }
+    msgs.addEventListener('touchstart', function (e) { target = find(e); if (!target) return; var tc = e.touches[0]; sx = tc.clientX; sy = tc.clientY; clearTimeout(timer); timer = setTimeout(function () { if (target) { if (navigator.vibrate) try { navigator.vibrate(15); } catch (x) {} openMenu(nodeFor(target), sx, sy); target = null; } }, 450); }, { passive: true });
+    msgs.addEventListener('touchmove', function (e) { var tc = e.touches[0]; if (Math.abs(tc.clientX - sx) > 10 || Math.abs(tc.clientY - sy) > 10) { clearTimeout(timer); target = null; } }, { passive: true });
+    ['touchend', 'touchcancel'].forEach(function (ev) { msgs.addEventListener(ev, function () { clearTimeout(timer); target = null; }, { passive: true }); });
+    msgs.addEventListener('contextmenu', function (e) { var n = find(e); if (n) { e.preventDefault(); openMenu(n, e.clientX, e.clientY); } });
+    document.addEventListener('pointerdown', function (e) { if (mmenu && !mmenu.contains(e.target)) closeMenu(); }, true);
+    document.addEventListener('scroll', closeMenu, true);
+  })();
 
   /* ----- cartões de pasta / arquivo / imagem ----- */
   async function linkFor(chatId, path, download) { return API + (await api('POST', '/api/files/link', { chat: chatId, path: path, download: !!download })).url; }
@@ -489,8 +526,8 @@
   function renderHistory(list, chatId) {
     clearMsgs(); $('empty').hidden = !!list.length;
     list.forEach(function (m) {
-      if (m.role === 'user') addUser(m.text, (m.parts || []).filter(function (p) { return p.kind === 'attachment'; }));
-      else { var am = newAssistant(); fillText(am, m.text, false); (m.parts || []).forEach(function (p) { am._p.appendChild(partCard(p, chatId)); }); msgs.appendChild(am); }
+      if (m.role === 'user') addUser(m.text, (m.parts || []).filter(function (p) { return p.kind === 'attachment'; }), m.ts);
+      else { var am = newAssistant(); am._ts = m.ts; fillText(am, m.text, false); (m.parts || []).forEach(function (p) { am._p.appendChild(partCard(p, chatId)); }); msgs.appendChild(am); }
     });
     bottom();
   }
@@ -542,7 +579,7 @@
     setBusy(true); lsSet('orvex:run', job.chatId); var ac = new AbortController(); abortCtl = ac; var rs = { ac: ac, synced: false, stopped: false, chatId: job.chatId, last: Date.now() }; curRun = rs; var gotDone = false;
     var st = el('div', 'status'); st.innerHTML = '<b></b>'; var stSpan = el('span', '', t('think') + '...'); setSt(stSpan, t('think') + '...'); st.appendChild(stSpan); msgs.appendChild(st); bottom();
     var am = null; var text = ''; var raf = 0;
-    function ensure() { if (!am) { am = newAssistant(); msgs.insertBefore(am, st); } return am; }
+    function ensure() { if (!am) { am = newAssistant(); am._ts = Date.now(); msgs.insertBefore(am, st); } return am; }
     function draw() { raf = 0; if (am) { fillText(am, text, true); bottom(); } }
     var gotAny = false;
     try {
